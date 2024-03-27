@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temp Title</title>
+    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js" charset="utf-8"></script>
+</head>
+<body>
+    <h1>Header</h1>
+    <button onclick="startSocketConnection()">Connect to server</button>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        
+        function startSocketConnection(){
+            vscode.postMessage({
+                command: 'startSocket',
+            })
+        }
+
+        //Does not have to be a dictionary
+        var plots = {};
+
+
+        function addGraph(id){
+            var newContent = document.createElement('h1');
+            newContent.innerHTML = id;
+            document.body.appendChild(newContent);
+
+            var myDiv = document.createElement('div');
+            myDiv.id = id;
+            myDiv.style = "width:600px;height:250px;";
+            document.body.appendChild(myDiv);
+
+            plots.id = (Plotly.newPlot(id, [{y: [], mode: 'lines', line: {color: '#80CAF6'}}]))
+        }
+
+        // Handle the message inside the webview
+        window.addEventListener('message', event => {
+
+            const message = event.data; // The JSON data our extension sent
+
+            switch (message.command) {
+                case 'updateGraph':
+                    Plotly.extendTraces(message.id, {
+                        y: [[message.value]]
+                    }, [0]);
+                    break;
+
+                case 'addGraph':
+                    addGraph(message.id);
+                    break;
+            }
+        });
+
+    </script>
+
+</body>
+</html>
