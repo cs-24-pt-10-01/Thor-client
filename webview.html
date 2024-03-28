@@ -10,6 +10,21 @@
     <h1>Header</h1>
     <button onclick="startSocketConnection()">Connect to server</button>
 
+
+    <table> <!-- Placeholder for leaderboard -->
+        <tr>
+            <th>First iteration</th>
+            <th>Accumulated</th>
+            <th>Per Call</th>
+        </tr>
+        <tr>
+            <td>418</td>
+            <td>420</td>
+            <td>451</td>
+        </tr>
+    </table>
+
+
     <script>
         const vscode = acquireVsCodeApi();
         
@@ -23,10 +38,29 @@
         var plots = {};
 
 
+
         function addGraph(id){
-            var newContent = document.createElement('h1');
-            newContent.innerHTML = id;
-            document.body.appendChild(newContent);
+            var newHeader = document.createElement('h1');
+            newHeader.innerHTML = id;
+            document.body.appendChild(newHeader);
+
+            var newTable = document.createElement('table');
+            newTable.id = id + "Table";
+            newTable.innerHTML = "<tr><th>First iteration</th><th>Accumulated</th><th>Per Call</th></tr>"
+            var newRow = newTable.insertRow(1);
+            newRow.id = id + "Row";
+            var newCell1 = newRow.insertCell(0);
+            newCell1.id = id + "Cell1";
+            newCell1.innerHTML = "0";
+            var newCell2 = newRow.insertCell(1);
+            newCell2.id = id + "Cell2";
+            newCell2.innerHTML = "0";
+            var newCell3 = newRow.insertCell(2);
+            newCell3.id = id + "Cell3";
+            newCell3.innerHTML = "0";
+            document.body.appendChild(newTable);
+
+
 
             var myDiv = document.createElement('div');
             myDiv.id = id;
@@ -35,6 +69,17 @@
 
             plots.id = (Plotly.newPlot(id, [{y: [], mode: 'lines', line: {color: '#80CAF6'}}]))
         }
+
+        function UpdateStats(id, first, acc, per_call){ //TODO just get table once and update values
+            var cell1 = document.getElementById(id+"Cell1");
+            cell1.innerHTML = first;
+            var cell2 = document.getElementById(id+"Cell2");
+            cell2.innerHTML = acc;
+            var cell3 = document.getElementById(id+"Cell3");
+            cell3.innerHTML = per_call;
+        }
+
+
 
         // Handle the message inside the webview
         window.addEventListener('message', event => {
@@ -50,6 +95,10 @@
 
                 case 'addGraph':
                     addGraph(message.id);
+                    break;
+                
+                case 'updateStats':
+                    UpdateStats(message.id, message.first, message.acc, message.per_call)
                     break;
             }
         });

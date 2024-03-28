@@ -32,6 +32,11 @@
         "command": "thorClient.AddGraph",
         "title": "Add Graph",
         "category": "Thor Client"
+      },
+      {
+        "command": "thorClient.UpdateStats",
+        "title": "Add Graph",
+        "category": "Thor Client"
       }
     ]
   },

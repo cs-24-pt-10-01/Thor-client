@@ -22,7 +22,7 @@ function activate(context) {
 					enableScripts: true
 				}
 				);
-				currentPanel.webview.html = fs.readFileSync("	PATH TO webview.html	", "utf8");
+				currentPanel.webview.html = fs.readFileSync('PATH', 'utf8');
 				currentPanel.onDidDispose(
 				() => {
 					currentPanel = undefined;
@@ -56,7 +56,7 @@ function activate(context) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('thorClient.UpdateGraph', (id_arg, value_arg) => {
-			if (!currentPanel) {
+			if (!currentPanel) { //skal testes uden dette
 				return;
 			}
 			currentPanel.webview.postMessage({ command: 'updateGraph', id: id_arg, value: value_arg });
@@ -65,12 +65,22 @@ function activate(context) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('thorClient.AddGraph', (id_arg) => {
-			if (!currentPanel) {
+			if (!currentPanel) { //skal testes uden dette
 				return;
 			}
 			currentPanel.webview.postMessage({ command: 'addGraph', id: id_arg});
 		})
 	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('thorClient.UpdateStats', (id_arg, first_arg, acc_arg, per_call_arg) => {
+			if (!currentPanel) { //skal testes uden dette
+				return;
+			}
+			currentPanel.webview.postMessage({ command: 'updateStats', id: id_arg, first: first_arg, acc: acc_arg, per_call: per_call_arg});
+		})
+	);
+
 }
 
 
@@ -105,28 +115,28 @@ function startSocket(){
 				var value = val.rapl_measurement.AMD.pkg;
 				var operation = val.local_client_packet.operation;
 
-				if(!(identifier in dict)){
-					vscode.commands.executeCommand('thorClient.AddGraph', identifier);
-				}
+				
 
-
-				if(!(identifier in dict)){
-					//				  [first, accumulated, amount of times seen]
-					dict[identifier] = [value, value, 1];
-				}else{
-					dict[identifier][1] += value;
-					if(operation == "Stop"){
-						dict[identifier][2] += 1;
-					}
-				}
 
 				var key = identifier+threadId;
 				if(operation == "Start"){
 					idThreadDict.key = value;
 				}else{
-					vscode.commands.executeCommand('thorClient.UpdateGraph', identifier, value - idThreadDict.key);
+					var energyUsed = value - idThreadDict.key;
+
+					if(!(identifier in dict)){
+						vscode.commands.executeCommand('thorClient.AddGraph', identifier);
+						//				   [first, accumulated, amount of times seen, identifier(used for debugging)] //TODO remove debug identifier
+						dict[identifier] = [energyUsed, 0, 1, identifier];
+					}
+					//console.log(energyUsed + " = " + value + " - " + idThreadDict.key);
+					vscode.commands.executeCommand('thorClient.UpdateGraph', identifier, energyUsed);
+
+					dict[identifier][1] += energyUsed;
+					dict[identifier][2] += 1;
+					//console.log(dict[identifier]);
+					vscode.commands.executeCommand('thorClient.UpdateStats', identifier, dict[identifier][0], dict[identifier][1], (dict[identifier][1])/dict[identifier][2]);
 				}
-				
 				
         	}
 		}else{
