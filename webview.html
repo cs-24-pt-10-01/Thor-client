@@ -5,29 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Temp Title</title>
     <script src="https://cdn.plot.ly/plotly-2.30.0.min.js" charset="utf-8"></script>
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.css" />
+    <script src="https://cdn.datatables.net/2.0.4/js/dataTables.js"></script>    
+
+    <!--<script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.0.3/css/dataTables.js"></script>-->
 </head>
 <body>
     <h1>Header</h1>
     <button onclick="startSocketConnection()">Connect to server</button>
 
 
-    <table> <!-- Placeholder for leaderboard -->
-        <tr>
-            <th>First iteration</th>
-            <th>Accumulated</th>
-            <th>Per Call</th>
-        </tr>
-        <tr>
-            <td>418</td>
-            <td>420</td>
-            <td>451</td>
-        </tr>
+    <table id="LeaderboardTable">
+        <thead>
+            <tr>
+                <th>Identifier</th>
+                <th>First iteration</th>
+                <th>Accumulated</th>
+                <th>Per Call</th>
+            </tr>
+        </thead>
+        <tbody id="LeaderboardRows">
+            <tr>
+                <td>Test</td>
+                <td>418</td>
+                <td>420</td>
+                <td>451</td>
+            </tr>
+        </tbody>
+        
     </table>
 
 
     <script>
         const vscode = acquireVsCodeApi();
-        
+
         function startSocketConnection(){
             vscode.postMessage({
                 command: 'startSocket',
@@ -62,10 +75,10 @@
 
 
 
-            var myDiv = document.createElement('div');
-            myDiv.id = id;
-            myDiv.style = "width:600px;height:250px;";
-            document.body.appendChild(myDiv);
+            var newDiv = document.createElement('div');
+            newDiv.id = id;
+            newDiv.style = "width:600px;height:250px;";
+            document.body.appendChild(newDiv);
 
             plots.id = (Plotly.newPlot(id, [{y: [], mode: 'lines', line: {color: '#80CAF6'}}]))
         }
@@ -77,6 +90,36 @@
             cell2.innerHTML = acc;
             var cell3 = document.getElementById(id+"Cell3");
             cell3.innerHTML = per_call;
+        }
+
+        function UpdateLeaderBoardData(id, first, acc, per_call){
+            var newRow = document.createElement("tr");
+            newRow.id = id + "Row";
+            var newCell1 = newRow.insertCell(0);
+            newCell1.id = id + "Cell1";
+            newCell1.innerHTML = id;
+            var newCell2 = newRow.insertCell(1);
+            newCell2.id = id + "Cell2";
+            newCell2.innerHTML = first;
+            var newCell3 = newRow.insertCell(2);
+            newCell3.id = id + "Cell3";
+            newCell3.innerHTML = acc;
+            var newCell4 = newRow.insertCell(3);
+            newCell4.id = id + "Cell4";
+            newCell4.innerHTML = per_call;
+            document.getElementById("LeaderboardRows").appendChild(newRow);
+        }
+
+        function UpdateLeaderboard(dict){
+            
+            for (const [key, value] of Object.entries(dict)) {
+                console.log(key, value);
+                UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1])/(value[2])));
+            }
+
+            let table = new DataTable('#LeaderboardTable', {
+                //Opions
+            });
         }
 
 
@@ -98,8 +141,11 @@
                     break;
                 
                 case 'updateStats':
-                    UpdateStats(message.id, message.first, message.acc, message.per_call)
+                    UpdateStats(message.id, message.first, message.acc, message.per_call);
                     break;
+
+                case 'SocketClosed':
+                    UpdateLeaderboard(message.dict);
             }
         });
 

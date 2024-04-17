@@ -37,6 +37,11 @@
         "command": "thorClient.UpdateStats",
         "title": "Add Graph",
         "category": "Thor Client"
+      },
+      {
+        "command": "thorClient.SocketClosed",
+        "title": "Socket Connection Closed",
+        "category": "Thor Client"
       }
     ]
   },
