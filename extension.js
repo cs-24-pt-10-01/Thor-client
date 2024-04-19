@@ -22,7 +22,7 @@ function activate(context) {
 					enableScripts: true
 				}
 				);
-				currentPanel.webview.html = fs.readFileSync('PATH TO HTML (webview.html)', 'utf8');
+				currentPanel.webview.html = fs.readFileSync(__dirname + '/webview.html', 'utf8');
 				currentPanel.onDidDispose(
 				() => {
 					currentPanel = undefined;
