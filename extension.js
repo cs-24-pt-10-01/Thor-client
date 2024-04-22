@@ -102,20 +102,24 @@ var dict = {}; //data about the different measurements
 //dict[3]: identifier
 
 function handleData(jsonData) {
-    for (var stuff in jsonData) {
+    for (const val of jsonData) {
+        const identifier = val.local_client_packet.id;
+        const threadId = val.local_client_packet.thread_id;
 
-        var val = jsonData[stuff];
+        // checking if the measurement is from an Intel or AMD processor
+        const value = val.rapl_measurement.Intel ? val.rapl_measurement.Intel.pkg : val.rapl_measurement.AMD.pkg;
 
-        var identifier = val.local_client_packet.id;
-        var threadId = val.local_client_packet.thread_id;
-        var value = val.rapl_measurement.Intel.pkg; // TODO if amd then amd.pkg
-        var operation = val.local_client_packet.operation;
+        const operation = val.local_client_packet.operation;
 
-        var key = identifier + threadId;
+        const key = identifier + threadId;
         if (operation == "Start") {
-            idThreadDict.key = value;
+            idThreadDict[key] = value;
         } else {
-            var energyUsed = value - idThreadDict.key;
+            if (idThreadDict[key] == undefined) {
+                console.log("Start not found for key: " + key);
+                continue
+            }
+            const energyUsed = value - idThreadDict[key];
 
             if (!(identifier in dict)) {
                 vscode.commands.executeCommand('thorClient.AddGraph', identifier);
@@ -175,7 +179,6 @@ function startSocket(host, port, repo) {
         console.log("Connection closed");
     });
 }
-
 
 // This method is called when your extension is deactivated
 function deactivate() { }
