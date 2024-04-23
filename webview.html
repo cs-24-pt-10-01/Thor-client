@@ -15,16 +15,23 @@
 </head>
 
 <style>
-	div {
+	.section {
 		margin: 10px;
 		background-color: #181818;
 		border-radius: 5px;
 		padding: 10px;
 	}
+
+	.plotly-graph {
+		margin: 10px;
+		padding: 10px;
+		width: 80%;
+		height: 10%;
+	}
 </style>
 
 <body>
-	<div>
+	<div class="section">
 		<h1>Server Connection</h1>
 		<p>Address:</p>
 		<input type="text" id="host" value="127.0.0.1">
@@ -35,8 +42,8 @@
 		<button onclick="startSocketConnection()">Connect to server</button>
 	</div>
 
-	<div>
-		<h1>Results</h1>
+	<div class="section">
+		<h1>Leaderboard</h1>
 		<table id="LeaderboardTable">
 			<thead>
 				<tr>
@@ -51,13 +58,18 @@
 		</table>
 	</div>
 
+	<div class="section">
+		<H1>Graphs</H1>
+		<div id="graphs"></div>
+	</div>
+
 	<script>
 		const vscode = acquireVsCodeApi();
 
 		function startSocketConnection() {
-			let host = document.getElementById("host").value;
-			let port = document.getElementById("port").value;
-			let repo = document.getElementById("repo").value;
+			const host = document.getElementById("host").value;
+			const port = document.getElementById("port").value;
+			const repo = document.getElementById("repo").value;
 
 			vscode.postMessage({
 				command: 'startSocket',
@@ -71,60 +83,72 @@
 		var plots = {};
 
 
-
 		function addGraph(id) {
-			var newHeader = document.createElement('h1');
+			let newHeader = document.createElement('h2');
 			newHeader.innerHTML = id;
-			document.body.appendChild(newHeader);
 
-			var newTable = document.createElement('table');
+			const graphDiv = document.getElementById("graphs");
+
+			graphDiv.appendChild(newHeader);
+
+			let newTable = document.createElement('table');
 			newTable.id = id + "Table";
 			newTable.innerHTML = "<tr><th>First iteration</th><th>Accumulated</th><th>Per Call</th></tr>"
-			var newRow = newTable.insertRow(1);
+			let newRow = newTable.insertRow(1);
 			newRow.id = id + "Row";
-			var newCell1 = newRow.insertCell(0);
+			let newCell1 = newRow.insertCell(0);
 			newCell1.id = id + "Cell1";
 			newCell1.innerHTML = "0";
-			var newCell2 = newRow.insertCell(1);
+			let newCell2 = newRow.insertCell(1);
 			newCell2.id = id + "Cell2";
 			newCell2.innerHTML = "0";
-			var newCell3 = newRow.insertCell(2);
+			let newCell3 = newRow.insertCell(2);
 			newCell3.id = id + "Cell3";
 			newCell3.innerHTML = "0";
-			document.body.appendChild(newTable);
+			graphDiv.appendChild(newTable);
 
 
-
-			var newDiv = document.createElement('div');
+			let newDiv = document.createElement('div');
 			newDiv.id = id;
-			newDiv.style = "width:600px;height:250px;";
-			document.body.appendChild(newDiv);
+			newDiv.className = "plotly-graph";
+			graphDiv.appendChild(newDiv);
 
-			plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'lines', line: { color: '#80CAF6' } }]))
+			const layout = {
+				autosize: true,
+				title: id,
+				xaxis: {
+					title: 'Call count' // todo better name
+				},
+				yaxis: {
+					title: 'PKG'
+				}
+			};
+
+			plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'scatter', line: { color: '#80CAF6' } }], layout))
 		}
 
 		function UpdateStats(id, first, acc, per_call) { //TODO just get table once and update values
-			var cell1 = document.getElementById(id + "Cell1");
+			let cell1 = document.getElementById(id + "Cell1");
 			cell1.innerHTML = first;
-			var cell2 = document.getElementById(id + "Cell2");
+			let cell2 = document.getElementById(id + "Cell2");
 			cell2.innerHTML = acc;
-			var cell3 = document.getElementById(id + "Cell3");
+			let cell3 = document.getElementById(id + "Cell3");
 			cell3.innerHTML = per_call;
 		}
 
 		function UpdateLeaderBoardData(id, first, acc, per_call) {
-			var newRow = document.createElement("tr");
+			let newRow = document.createElement("tr");
 			newRow.id = id + "Row";
-			var newCell1 = newRow.insertCell(0);
+			let newCell1 = newRow.insertCell(0);
 			newCell1.id = id + "Cell1";
 			newCell1.innerHTML = id;
-			var newCell2 = newRow.insertCell(1);
+			let newCell2 = newRow.insertCell(1);
 			newCell2.id = id + "Cell2";
 			newCell2.innerHTML = first;
-			var newCell3 = newRow.insertCell(2);
+			let newCell3 = newRow.insertCell(2);
 			newCell3.id = id + "Cell3";
 			newCell3.innerHTML = acc;
-			var newCell4 = newRow.insertCell(3);
+			let newCell4 = newRow.insertCell(3);
 			newCell4.id = id + "Cell4";
 			newCell4.innerHTML = per_call;
 			document.getElementById("LeaderboardRows").appendChild(newRow);
@@ -141,8 +165,6 @@
 				//Opions
 			});
 		}
-
-
 
 		// Handle the message inside the webview
 		window.addEventListener('message', event => {
