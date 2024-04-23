@@ -15,42 +15,43 @@ function activate(context) {
 				currentPanel.reveal(vscode.ViewColumn.One);
 			} else {
 				currentPanel = vscode.window.createWebviewPanel(
-				'thorclient',
-				'Thor Client',
-				vscode.ViewColumn.One,
-				{
-					enableScripts: true
-				}
+					'thorclient',
+					'Thor Client',
+					vscode.ViewColumn.One,
+					{
+						enableScripts: true
+					}
 				);
-				currentPanel.webview.html = fs.readFileSync('PATH TO HTML (webview.html)', 'utf8');
+				// __dirname is the directory of the this file
+				currentPanel.webview.html = fs.readFileSync(__dirname + '/webview.html', 'utf8');
 				currentPanel.onDidDispose(
-				() => {
-					currentPanel = undefined;
-				},
-				undefined,
-				context.subscriptions
+					() => {
+						currentPanel = undefined;
+					},
+					undefined,
+					context.subscriptions
 				);
 			}
 
 			currentPanel.webview.onDidReceiveMessage(
 				message => {
 					switch (message.command) {
-					case 'startSocket':
-						startSocket();
-						return;
+						case 'startSocket':
+							startSocket(message.host, message.port, message.repo);
+							return;
 					}
 				},
 				undefined,
 				context.subscriptions
 			);
 		})
-		
+
 	);
 
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('thorClient.startSocket', () => {
-			startSocket();
+		vscode.commands.registerCommand('thorClient.startSocket', (ip_arg, port_arg, repo_arg) => {
+			startSocket(ip_arg, port_arg, repo_arg);
 		})
 	);
 
@@ -68,7 +69,7 @@ function activate(context) {
 			if (!currentPanel) { //skal testes uden dette
 				return;
 			}
-			currentPanel.webview.postMessage({ command: 'addGraph', id: id_arg});
+			currentPanel.webview.postMessage({ command: 'addGraph', id: id_arg });
 		})
 	);
 
@@ -77,7 +78,7 @@ function activate(context) {
 			if (!currentPanel) { //skal testes uden dette
 				return;
 			}
-			currentPanel.webview.postMessage({ command: 'updateStats', id: id_arg, first: first_arg, acc: acc_arg, per_call: per_call_arg});
+			currentPanel.webview.postMessage({ command: 'updateStats', id: id_arg, first: first_arg, acc: acc_arg, per_call: per_call_arg });
 		})
 	);
 
@@ -86,7 +87,7 @@ function activate(context) {
 			if (!currentPanel) { //skal testes uden dette
 				return;
 			}
-			currentPanel.webview.postMessage({ command: 'SocketClosed', dict: dict_arg});
+			currentPanel.webview.postMessage({ command: 'SocketClosed', dict: dict_arg });
 		})
 	);
 
@@ -100,49 +101,75 @@ var dict = {}; //data about the different measurements
 //dict[2]: count (amount of emasurements taken)
 //dict[3]: identifier
 
-function startSocket(){
-	const host = "127.0.0.1";
-	const port = 5000;
+function handleData(jsonData) {
+	for (const val of jsonData) {
+		const identifier = val.local_client_packet.id;
+		const threadId = val.local_client_packet.thread_id;
 
+		// checking if the measurement is from an Intel or AMD processor
+		const value = val.rapl_measurement.Intel ? val.rapl_measurement.Intel.pkg : val.rapl_measurement.AMD.pkg;
+
+		const operation = val.local_client_packet.operation;
+
+		const key = identifier + threadId;
+		if (operation == "Start") {
+			idThreadDict[key] = value;
+		} else {
+			if (idThreadDict[key] == undefined) {
+				console.log("Start not found for key: " + key);
+				continue
+			}
+			const energyUsed = value - idThreadDict[key];
+
+			if (!(identifier in dict)) {
+				vscode.commands.executeCommand('thorClient.AddGraph', identifier);
+				//				   [first, accumulated, amount of times seen, identifier(used for debugging)] //TODO remove debug identifier
+				dict[identifier] = [energyUsed, 0, 0, identifier];
+			}
+
+			vscode.commands.executeCommand('thorClient.UpdateGraph', identifier, energyUsed);
+
+			dict[identifier][1] += energyUsed;
+			dict[identifier][2] += 1;
+			vscode.commands.executeCommand('thorClient.UpdateStats', identifier, dict[identifier][0], dict[identifier][1], ((dict[identifier][1]) / (dict[identifier][2])));
+		}
+	}
+}
+
+function startSocket(host, port, repo) {
+	const endString = "end"; // string used to indicate end of data by the server
+	const end = new Buffer.from(endString);
+
+	// if no repo, indicating observer by sending "none"
+	if (repo == "") {
+		repo = "none";
+	}
+
+	// Buffer used for storing data until endString is found
+	let dataBuffer = Buffer.alloc(0);
 
 	const client = net.createConnection(port, host, () => {
-		console.log("Connected");
-		client.write(`gib,something`);
+		client.write("1"); // indicating client stream
+		client.write(repo + "#");
+		console.log('Connected');
 	});
 
 	client.on("data", (data) => {
+		// if the endString is found then parse data else concat to buffer
+		if (data.subarray(data.length - end.length).toString() == endString) {
+			dataBuffer = Buffer.concat([dataBuffer, data]);
 
-		var jsonData = JSON.parse(data.toString());
-		
-		for(var stuff in jsonData){
+			// removing endString from data
+			const dataBufferString = dataBuffer.toString().slice(0, -end.length);
 
-			var val = jsonData[stuff];
+			handleData(JSON.parse(dataBufferString));
 
-			var identifier = val.local_client_packet.id;
-			var threadId = val.local_client_packet.thread_id;
-			var value = val.rapl_measurement.Intel.pkg;
-			var operation = val.local_client_packet.operation;
-
-			var key = identifier+threadId;
-			if(operation == "Start"){
-				idThreadDict.key = value;
-			}else{
-				var energyUsed = value - idThreadDict.key;
-
-				if(!(identifier in dict)){
-					vscode.commands.executeCommand('thorClient.AddGraph', identifier);
-					//				   [first, accumulated, amount of times seen, identifier(used for debugging)] //TODO remove debug identifier
-					dict[identifier] = [energyUsed, 0, 0, identifier];
-				}
-				
-				vscode.commands.executeCommand('thorClient.UpdateGraph', identifier, energyUsed);
-
-				dict[identifier][1] += energyUsed;
-				dict[identifier][2] += 1;
-				vscode.commands.executeCommand('thorClient.UpdateStats', identifier, dict[identifier][0], dict[identifier][1], ((dict[identifier][1])/(dict[identifier][2])));
-			}
+			// clearing buffer
+			dataBuffer = Buffer.alloc(0);
 		}
-
+		else {
+			dataBuffer = Buffer.concat([dataBuffer, data]);
+		}
 	});
 
 	client.on("error", (error) => {
@@ -156,9 +183,8 @@ function startSocket(){
 	});
 }
 
-
 // This method is called when your extension is deactivated
-function deactivate() {}
+function deactivate() { }
 
 
 module.exports = {
