@@ -14,6 +14,15 @@
     <script src="https://cdn.datatables.net/2.0.3/css/dataTables.js"></script>-->
 </head>
 
+<style>
+    div {
+        margin: 10px;
+        background-color: #181818;
+        border-radius: 5px;
+        padding: 10px;
+    }
+</style>
+
 <body>
     <div>
         <h1>Server Connection</h1>
@@ -26,22 +35,21 @@
         <button onclick="startSocketConnection()">Connect to server</button>
     </div>
 
-    <h1>Results</h1>
-
-    <table id="LeaderboardTable">
-        <thead>
-            <tr>
-                <th>Identifier</th>
-                <th>First iteration</th>
-                <th>Accumulated</th>
-                <th>Per Call</th>
-            </tr>
-        </thead>
-        <tbody id="LeaderboardRows">
-        </tbody>
-
-    </table>
-
+    <div>
+        <h1>Results</h1>
+        <table id="LeaderboardTable">
+            <thead>
+                <tr>
+                    <th>Identifier</th>
+                    <th>First iteration</th>
+                    <th>Accumulated</th>
+                    <th>Per Call</th>
+                </tr>
+            </thead>
+            <tbody id="LeaderboardRows">
+            </tbody>
+        </table>
+    </div>
 
     <script>
         const vscode = acquireVsCodeApi();
