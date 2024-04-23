@@ -15,15 +15,18 @@
 </head>
 
 <body>
-    <h1>Header</h1>
-    <p>Address:</p>
-    <input type="text" id="host" value="127.0.0.1">
-    <p>Port:</p>
-    <input type="text" id="port" value="6969">
-    <p>Repository:</p>
-    <input type="text" id="repo" value=""> <br>
-    <button onclick="startSocketConnection()">Connect to server</button>
+    <div>
+        <h1>Server Connection</h1>
+        <p>Address:</p>
+        <input type="text" id="host" value="127.0.0.1">
+        <p>Port:</p>
+        <input type="text" id="port" value="6969">
+        <p>Repository URL:</p>
+        <input type="text" id="repo" value=""> <br>
+        <button onclick="startSocketConnection()">Connect to server</button>
+    </div>
 
+    <h1>Results</h1>
 
     <table id="LeaderboardTable">
         <thead>
@@ -35,12 +38,6 @@
             </tr>
         </thead>
         <tbody id="LeaderboardRows">
-            <tr>
-                <td>Test</td>
-                <td>418</td>
-                <td>420</td>
-                <td>451</td>
-            </tr>
         </tbody>
 
     </table>
