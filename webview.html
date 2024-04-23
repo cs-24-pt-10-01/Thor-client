@@ -2,174 +2,174 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temp Title</title>
-    <script src="https://cdn.plot.ly/plotly-2.30.0.min.js" charset="utf-8"></script>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Temp Title</title>
+	<script src="https://cdn.plot.ly/plotly-2.30.0.min.js" charset="utf-8"></script>
 
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.css" />
-    <script src="https://cdn.datatables.net/2.0.4/js/dataTables.js"></script>
+	<link rel="stylesheet" href="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.css" />
+	<script src="https://cdn.datatables.net/2.0.4/js/dataTables.js"></script>
 
-    <!--<script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
+	<!--<script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
     <script src="https://cdn.datatables.net/2.0.3/css/dataTables.js"></script>-->
 </head>
 
 <style>
-    div {
-        margin: 10px;
-        background-color: #181818;
-        border-radius: 5px;
-        padding: 10px;
-    }
+	div {
+		margin: 10px;
+		background-color: #181818;
+		border-radius: 5px;
+		padding: 10px;
+	}
 </style>
 
 <body>
-    <div>
-        <h1>Server Connection</h1>
-        <p>Address:</p>
-        <input type="text" id="host" value="127.0.0.1">
-        <p>Port:</p>
-        <input type="text" id="port" value="6969">
-        <p>Repository URL:</p>
-        <input type="text" id="repo" value=""> <br>
-        <button onclick="startSocketConnection()">Connect to server</button>
-    </div>
+	<div>
+		<h1>Server Connection</h1>
+		<p>Address:</p>
+		<input type="text" id="host" value="127.0.0.1">
+		<p>Port:</p>
+		<input type="text" id="port" value="6969">
+		<p>Repository URL:</p>
+		<input type="text" id="repo" value=""> <br>
+		<button onclick="startSocketConnection()">Connect to server</button>
+	</div>
 
-    <div>
-        <h1>Results</h1>
-        <table id="LeaderboardTable">
-            <thead>
-                <tr>
-                    <th>Identifier</th>
-                    <th>First iteration</th>
-                    <th>Accumulated</th>
-                    <th>Per Call</th>
-                </tr>
-            </thead>
-            <tbody id="LeaderboardRows">
-            </tbody>
-        </table>
-    </div>
+	<div>
+		<h1>Results</h1>
+		<table id="LeaderboardTable">
+			<thead>
+				<tr>
+					<th>Identifier</th>
+					<th>First iteration</th>
+					<th>Accumulated</th>
+					<th>Per Call</th>
+				</tr>
+			</thead>
+			<tbody id="LeaderboardRows">
+			</tbody>
+		</table>
+	</div>
 
-    <script>
-        const vscode = acquireVsCodeApi();
+	<script>
+		const vscode = acquireVsCodeApi();
 
-        function startSocketConnection() {
-            let host = document.getElementById("host").value;
-            let port = document.getElementById("port").value;
-            let repo = document.getElementById("repo").value;
+		function startSocketConnection() {
+			let host = document.getElementById("host").value;
+			let port = document.getElementById("port").value;
+			let repo = document.getElementById("repo").value;
 
-            vscode.postMessage({
-                command: 'startSocket',
-                host: host,
-                port: port,
-                repo: repo
-            })
-        }
+			vscode.postMessage({
+				command: 'startSocket',
+				host: host,
+				port: port,
+				repo: repo
+			})
+		}
 
-        //Does not have to be a dictionary
-        var plots = {};
-
-
-
-        function addGraph(id) {
-            var newHeader = document.createElement('h1');
-            newHeader.innerHTML = id;
-            document.body.appendChild(newHeader);
-
-            var newTable = document.createElement('table');
-            newTable.id = id + "Table";
-            newTable.innerHTML = "<tr><th>First iteration</th><th>Accumulated</th><th>Per Call</th></tr>"
-            var newRow = newTable.insertRow(1);
-            newRow.id = id + "Row";
-            var newCell1 = newRow.insertCell(0);
-            newCell1.id = id + "Cell1";
-            newCell1.innerHTML = "0";
-            var newCell2 = newRow.insertCell(1);
-            newCell2.id = id + "Cell2";
-            newCell2.innerHTML = "0";
-            var newCell3 = newRow.insertCell(2);
-            newCell3.id = id + "Cell3";
-            newCell3.innerHTML = "0";
-            document.body.appendChild(newTable);
+		//Does not have to be a dictionary
+		var plots = {};
 
 
 
-            var newDiv = document.createElement('div');
-            newDiv.id = id;
-            newDiv.style = "width:600px;height:250px;";
-            document.body.appendChild(newDiv);
+		function addGraph(id) {
+			var newHeader = document.createElement('h1');
+			newHeader.innerHTML = id;
+			document.body.appendChild(newHeader);
 
-            plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'lines', line: { color: '#80CAF6' } }]))
-        }
-
-        function UpdateStats(id, first, acc, per_call) { //TODO just get table once and update values
-            var cell1 = document.getElementById(id + "Cell1");
-            cell1.innerHTML = first;
-            var cell2 = document.getElementById(id + "Cell2");
-            cell2.innerHTML = acc;
-            var cell3 = document.getElementById(id + "Cell3");
-            cell3.innerHTML = per_call;
-        }
-
-        function UpdateLeaderBoardData(id, first, acc, per_call) {
-            var newRow = document.createElement("tr");
-            newRow.id = id + "Row";
-            var newCell1 = newRow.insertCell(0);
-            newCell1.id = id + "Cell1";
-            newCell1.innerHTML = id;
-            var newCell2 = newRow.insertCell(1);
-            newCell2.id = id + "Cell2";
-            newCell2.innerHTML = first;
-            var newCell3 = newRow.insertCell(2);
-            newCell3.id = id + "Cell3";
-            newCell3.innerHTML = acc;
-            var newCell4 = newRow.insertCell(3);
-            newCell4.id = id + "Cell4";
-            newCell4.innerHTML = per_call;
-            document.getElementById("LeaderboardRows").appendChild(newRow);
-        }
-
-        function UpdateLeaderboard(dict) {
-
-            for (const [key, value] of Object.entries(dict)) {
-                console.log(key, value);
-                UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1]) / (value[2])));
-            }
-
-            let table = new DataTable('#LeaderboardTable', {
-                //Opions
-            });
-        }
+			var newTable = document.createElement('table');
+			newTable.id = id + "Table";
+			newTable.innerHTML = "<tr><th>First iteration</th><th>Accumulated</th><th>Per Call</th></tr>"
+			var newRow = newTable.insertRow(1);
+			newRow.id = id + "Row";
+			var newCell1 = newRow.insertCell(0);
+			newCell1.id = id + "Cell1";
+			newCell1.innerHTML = "0";
+			var newCell2 = newRow.insertCell(1);
+			newCell2.id = id + "Cell2";
+			newCell2.innerHTML = "0";
+			var newCell3 = newRow.insertCell(2);
+			newCell3.id = id + "Cell3";
+			newCell3.innerHTML = "0";
+			document.body.appendChild(newTable);
 
 
 
-        // Handle the message inside the webview
-        window.addEventListener('message', event => {
+			var newDiv = document.createElement('div');
+			newDiv.id = id;
+			newDiv.style = "width:600px;height:250px;";
+			document.body.appendChild(newDiv);
 
-            const message = event.data; // The JSON data our extension sent
+			plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'lines', line: { color: '#80CAF6' } }]))
+		}
 
-            switch (message.command) {
-                case 'updateGraph':
-                    Plotly.extendTraces(message.id, {
-                        y: [[message.value]]
-                    }, [0]);
-                    break;
+		function UpdateStats(id, first, acc, per_call) { //TODO just get table once and update values
+			var cell1 = document.getElementById(id + "Cell1");
+			cell1.innerHTML = first;
+			var cell2 = document.getElementById(id + "Cell2");
+			cell2.innerHTML = acc;
+			var cell3 = document.getElementById(id + "Cell3");
+			cell3.innerHTML = per_call;
+		}
 
-                case 'addGraph':
-                    addGraph(message.id);
-                    break;
+		function UpdateLeaderBoardData(id, first, acc, per_call) {
+			var newRow = document.createElement("tr");
+			newRow.id = id + "Row";
+			var newCell1 = newRow.insertCell(0);
+			newCell1.id = id + "Cell1";
+			newCell1.innerHTML = id;
+			var newCell2 = newRow.insertCell(1);
+			newCell2.id = id + "Cell2";
+			newCell2.innerHTML = first;
+			var newCell3 = newRow.insertCell(2);
+			newCell3.id = id + "Cell3";
+			newCell3.innerHTML = acc;
+			var newCell4 = newRow.insertCell(3);
+			newCell4.id = id + "Cell4";
+			newCell4.innerHTML = per_call;
+			document.getElementById("LeaderboardRows").appendChild(newRow);
+		}
 
-                case 'updateStats':
-                    UpdateStats(message.id, message.first, message.acc, message.per_call);
-                    break;
+		function UpdateLeaderboard(dict) {
 
-                case 'SocketClosed':
-                    UpdateLeaderboard(message.dict);
-            }
-        });
+			for (const [key, value] of Object.entries(dict)) {
+				console.log(key, value);
+				UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1]) / (value[2])));
+			}
 
-    </script>
+			let table = new DataTable('#LeaderboardTable', {
+				//Opions
+			});
+		}
+
+
+
+		// Handle the message inside the webview
+		window.addEventListener('message', event => {
+
+			const message = event.data; // The JSON data our extension sent
+
+			switch (message.command) {
+				case 'updateGraph':
+					Plotly.extendTraces(message.id, {
+						y: [[message.value]]
+					}, [0]);
+					break;
+
+				case 'addGraph':
+					addGraph(message.id);
+					break;
+
+				case 'updateStats':
+					UpdateStats(message.id, message.first, message.acc, message.per_call);
+					break;
+
+				case 'SocketClosed':
+					UpdateLeaderboard(message.dict);
+			}
+		});
+
+	</script>
 
 </body>
 
