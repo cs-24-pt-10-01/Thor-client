@@ -39,6 +39,9 @@ function activate(context) {
 						case 'startSocket':
 							startSocket(message.host, message.port, message.repo);
 							return;
+						case 'readFromFile':
+							readFromFile(message.path);
+							return;
 					}
 				},
 				undefined,
@@ -162,7 +165,11 @@ function startSocket(host, port, repo) {
 			// removing endString from data
 			const dataBufferString = dataBuffer.toString().slice(0, -end.length);
 
-			handleData(JSON.parse(dataBufferString));
+			const jsonData = JSON.parse(dataBufferString);
+
+			handleData(jsonData);
+
+			writeJsonToFile(jsonData, __dirname + '/data.json');
 
 			// clearing buffer
 			dataBuffer = Buffer.alloc(0);
@@ -179,8 +186,46 @@ function startSocket(host, port, repo) {
 
 	client.on("close", () => {
 		vscode.commands.executeCommand('thorClient.SocketClosed', dict);
+		endJsonFile(__dirname + '/data.json');
 		console.log("Connection closed");
 	});
+}
+
+// write data to file, endJsonFile should be called after all date is written
+function writeJsonToFile(data, dist = 'data.json') {
+	if (!fs.existsSync(dist)) {
+		fs.writeFileSync(dist, '[', 'utf8');
+	}
+
+	for (const val of data) {
+		console.log(val);
+		fs.appendFileSync(dist, JSON.stringify(val) + ",", 'utf8');
+	}
+}
+
+// ends the json file with a ']'
+function endJsonFile(dist = 'data.json') {
+	// removing the last comma
+	fs.truncateSync(dist, fs.statSync(dist).size - 1);
+
+	// adding the ']'
+	fs.appendFileSync(dist, ']', 'utf8');
+}
+
+function readFromFile(path) {
+	try {
+		const data = fs.readFileSync(path);
+
+		const jsonData = JSON.parse(data);
+
+		handleData(jsonData);
+
+		// simulating stop
+		vscode.commands.executeCommand('thorClient.SocketClosed', dict);
+	}
+	catch (err) {
+		console.error("failed to read file", err);
+	}
 }
 
 // This method is called when your extension is deactivated

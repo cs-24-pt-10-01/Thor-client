@@ -33,6 +33,9 @@
 		<p>Repository URL:</p>
 		<input type="text" id="repo" value=""> <br>
 		<button onclick="startSocketConnection()">Connect to server</button>
+		<br>
+		<p> or select file </p>
+		<input type="file" id="file" name="file" accept=".json" onchange="SelectFile()">
 	</div>
 
 	<div>
@@ -70,7 +73,20 @@
 		//Does not have to be a dictionary
 		var plots = {};
 
+		function SelectFile() {
+			const fileSelector = document.getElementById('file');
+			// do nothing if no file is selected
+			if (fileSelector.files.length == 0) {
+				return;
+			}
 
+			const file = fileSelector.files[0];
+
+			vscode.postMessage({
+				command: 'readFromFile',
+				path: file.path
+			});
+		}
 
 		function addGraph(id) {
 			var newHeader = document.createElement('h1');
