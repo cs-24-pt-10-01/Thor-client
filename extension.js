@@ -137,13 +137,15 @@ function handleData(jsonData) {
 }
 
 function startSocket(host, port, repo) {
-    const endString = "end";
+    const endString = "end"; // string used to indicate end of data by the server
     const end = new Buffer.from(endString);
 
+    // if no repo, indicating observer by sending "none"
     if (repo == "") {
         repo = "none";
     }
 
+    // Buffer used for storing data until endString is found
     let dataBuffer = Buffer.alloc(0);
 
     const client = net.createConnection(port, host, () => {
@@ -153,10 +155,11 @@ function startSocket(host, port, repo) {
     });
 
     client.on("data", (data) => {
-        console.log(data.toString())
+        // if the endString is found then parse data else concat to buffer
         if (data.subarray(data.length - end.length).toString() == endString) {
             dataBuffer = Buffer.concat([dataBuffer, data]);
 
+            // removing endString from data
             const dataBufferString = dataBuffer.toString().slice(0, -end.length);
 
             handleData(JSON.parse(dataBufferString));
