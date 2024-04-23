@@ -31,7 +31,7 @@
 </style>
 
 <body>
-	<div class="section">
+	<div class="section" id="serverConnection">
 		<h1>Server Connection</h1>
 		<p>Address:</p>
 		<input type="text" id="host" value="127.0.0.1">
@@ -67,6 +67,8 @@
 		const vscode = acquireVsCodeApi();
 
 		function startSocketConnection() {
+			HideServerConnection();
+
 			const host = document.getElementById("host").value;
 			const port = document.getElementById("port").value;
 			const repo = document.getElementById("repo").value;
@@ -77,6 +79,14 @@
 				port: port,
 				repo: repo
 			})
+		}
+
+		function HideServerConnection() {
+			document.getElementById("serverConnection").style.display = "none";
+		}
+
+		function ShowServerConnection() {
+			document.getElementById("serverConnection").style.display = "block";
 		}
 
 		//Does not have to be a dictionary
@@ -117,7 +127,7 @@
 				autosize: true,
 				title: id,
 				xaxis: {
-					title: 'Call count' // todo better name
+					title: 'Call'
 				},
 				yaxis: {
 					title: 'PKG'
@@ -161,9 +171,11 @@
 				UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1]) / (value[2])));
 			}
 
+			/*
 			let table = new DataTable('#LeaderboardTable', {
 				//Opions
 			});
+			*/
 		}
 
 		// Handle the message inside the webview
@@ -188,6 +200,7 @@
 
 				case 'SocketClosed':
 					UpdateLeaderboard(message.dict);
+					ShowServerConnection();
 			}
 		});
 
