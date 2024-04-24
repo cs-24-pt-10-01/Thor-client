@@ -115,6 +115,9 @@
 
 			const file = fileSelector.files[0];
 
+			// Hiding connection tab while loading data
+			HideServerConnection();
+
 			vscode.postMessage({
 				command: 'readFromFile',
 				path: file.path
@@ -180,25 +183,6 @@
 				"Accumulated": acc,
 				"Per Call": per_call
 			});
-
-			/*
-
-			let newRow = document.createElement("tr");
-			newRow.id = id + "Row";
-			let newCell1 = newRow.insertCell(0);
-			newCell1.id = id + "Cell1";
-			newCell1.innerHTML = id;
-			let newCell2 = newRow.insertCell(1);
-			newCell2.id = id + "Cell2";
-			newCell2.innerHTML = first;
-			let newCell3 = newRow.insertCell(2);
-			newCell3.id = id + "Cell3";
-			newCell3.innerHTML = acc;
-			let newCell4 = newRow.insertCell(3);
-			newCell4.id = id + "Cell4";
-			newCell4.innerHTML = per_call;
-			document.getElementById("LeaderboardRows").appendChild(newRow);
-			*/
 		}
 
 		function UpdateLeaderboard(dict) {
