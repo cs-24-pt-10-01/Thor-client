@@ -7,11 +7,11 @@
 	<title>Temp Title</title>
 	<script src="https://cdn.plot.ly/plotly-2.30.0.min.js" charset="utf-8"></script>
 
+	<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+		integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
 	<link rel="stylesheet" href="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.css" />
 	<script src="https://cdn.datatables.net/2.0.4/js/dataTables.js"></script>
-
-	<!--<script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
-    <script src="https://cdn.datatables.net/2.0.3/css/dataTables.js"></script>-->
 </head>
 
 <style>
@@ -65,6 +65,11 @@
 
 	<script>
 		const vscode = acquireVsCodeApi();
+
+		let table = new DataTable('#LeaderboardTable', {
+			//Options
+		});
+
 
 		function startSocketConnection() {
 			HideServerConnection();
@@ -168,12 +173,6 @@
 				console.log(key, value);
 				UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1]) / (value[2])));
 			}
-
-			/*
-			let table = new DataTable('#LeaderboardTable', {
-				//Opions
-			});
-			*/
 		}
 
 		// Handle the message inside the webview
