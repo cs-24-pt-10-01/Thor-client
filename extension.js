@@ -166,7 +166,6 @@ function startSocket(host, port, repo) {
 			const dataBufferString = dataBuffer.toString().slice(0, -end.length);
 
 			const jsonData = JSON.parse(dataBufferString);
-
 			handleData(jsonData);
 
 			writeJsonToFile(jsonData, __dirname + '/data.json');
@@ -215,9 +214,7 @@ function endJsonFile(dist = 'data.json') {
 function readFromFile(path) {
 	try {
 		const data = fs.readFileSync(path);
-
 		const jsonData = JSON.parse(data);
-
 		handleData(jsonData);
 
 		// simulating stop
