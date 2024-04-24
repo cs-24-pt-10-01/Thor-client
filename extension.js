@@ -191,24 +191,24 @@ function startSocket(host, port, repo) {
 }
 
 // write data to file, endJsonFile should be called after all date is written
-function writeJsonToFile(data, dist = 'data.json') {
-	if (!fs.existsSync(dist)) {
-		fs.writeFileSync(dist, '[', 'utf8');
+function writeJsonToFile(data, path = 'data.json') {
+	if (!fs.existsSync(path)) {
+		fs.writeFileSync(path, '[', 'utf8');
 	}
 
 	for (const val of data) {
 		console.log(val);
-		fs.appendFileSync(dist, JSON.stringify(val) + ",", 'utf8');
+		fs.appendFileSync(path, JSON.stringify(val) + ",", 'utf8');
 	}
 }
 
 // ends the json file with a ']'
-function endJsonFile(dist = 'data.json') {
+function endJsonFile(path = 'data.json') {
 	// removing the last comma
-	fs.truncateSync(dist, fs.statSync(dist).size - 1);
+	fs.truncateSync(path, fs.statSync(path).size - 1);
 
 	// adding the ']'
-	fs.appendFileSync(dist, ']', 'utf8');
+	fs.appendFileSync(path, ']', 'utf8');
 }
 
 function readFromFile(path) {
