@@ -54,6 +54,7 @@
 					<th>First iteration</th>
 					<th>Accumulated</th>
 					<th>Per Call</th>
+					<th>Call count</th>
 				</tr>
 			</thead>
 			<tbody id="LeaderboardRows">
@@ -75,7 +76,8 @@
 				{ data: "Identifier" },
 				{ data: "First iteration" },
 				{ data: "Accumulated" },
-				{ data: "Per Call" }
+				{ data: "Per Call" },
+				{ data: "Call count" }
 			]
 		});
 
@@ -176,12 +178,13 @@
 			cell3.innerHTML = per_call;
 		}
 
-		function UpdateLeaderBoardData(id, first, acc, per_call) {
+		function UpdateLeaderBoardData(id, first, acc, per_call, calls) {
 			table.row.add({
 				"Identifier": id,
 				"First iteration": first,
 				"Accumulated": acc,
-				"Per Call": per_call
+				"Per Call": per_call,
+				"Call count": calls
 			});
 		}
 
@@ -189,7 +192,7 @@
 
 			for (const [key, value] of Object.entries(dict)) {
 				console.log(key, value);
-				UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1]) / (value[2])));
+				UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1]) / (value[2])), value[2]);
 			}
 			table.draw();
 		}
