@@ -69,8 +69,14 @@
 	<script>
 		const vscode = acquireVsCodeApi();
 
-		let table = new DataTable('#LeaderboardTable', {
+		const table = new DataTable('#LeaderboardTable', {
 			//Options
+			columns: [
+				{ data: "Identifier" },
+				{ data: "First iteration" },
+				{ data: "Accumulated" },
+				{ data: "Per Call" }
+			]
 		});
 
 
@@ -168,6 +174,15 @@
 		}
 
 		function UpdateLeaderBoardData(id, first, acc, per_call) {
+			table.row.add({
+				"Identifier": id,
+				"First iteration": first,
+				"Accumulated": acc,
+				"Per Call": per_call
+			});
+
+			/*
+
 			let newRow = document.createElement("tr");
 			newRow.id = id + "Row";
 			let newCell1 = newRow.insertCell(0);
@@ -183,6 +198,7 @@
 			newCell4.id = id + "Cell4";
 			newCell4.innerHTML = per_call;
 			document.getElementById("LeaderboardRows").appendChild(newRow);
+			*/
 		}
 
 		function UpdateLeaderboard(dict) {
@@ -191,6 +207,7 @@
 				console.log(key, value);
 				UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1]) / (value[2])));
 			}
+			table.draw();
 		}
 
 		// Handle the message inside the webview
