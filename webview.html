@@ -7,24 +7,31 @@
 	<title>Temp Title</title>
 	<script src="https://cdn.plot.ly/plotly-2.30.0.min.js" charset="utf-8"></script>
 
+	<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+		integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
 	<link rel="stylesheet" href="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.css" />
 	<script src="https://cdn.datatables.net/2.0.4/js/dataTables.js"></script>
-
-	<!--<script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
-    <script src="https://cdn.datatables.net/2.0.3/css/dataTables.js"></script>-->
 </head>
 
 <style>
-	div {
+	.section {
 		margin: 10px;
 		background-color: #181818;
 		border-radius: 5px;
 		padding: 10px;
 	}
+
+	.plotly-graph {
+		margin: 10px;
+		padding: 10px;
+		width: 80%;
+		height: 10%;
+	}
 </style>
 
 <body>
-	<div>
+	<div class="section" id="serverConnection">
 		<h1>Server Connection</h1>
 		<p>Address:</p>
 		<input type="text" id="host" value="127.0.0.1">
@@ -38,15 +45,16 @@
 		<input type="file" id="file" name="file" accept=".json" onchange="SelectFile()">
 	</div>
 
-	<div>
-		<h1>Results</h1>
+	<div class="section">
+		<h1>Leaderboard</h1>
 		<table id="LeaderboardTable">
 			<thead>
 				<tr>
 					<th>Identifier</th>
 					<th>First iteration</th>
 					<th>Accumulated</th>
-					<th>Per Call</th>
+					<th>Avg. Per Call</th>
+					<th>Call count</th>
 				</tr>
 			</thead>
 			<tbody id="LeaderboardRows">
@@ -54,13 +62,32 @@
 		</table>
 	</div>
 
+	<div class="section">
+		<H1>Graphs</H1>
+		<div id="graphs"></div>
+	</div>
+
 	<script>
 		const vscode = acquireVsCodeApi();
 
+		const table = new DataTable('#LeaderboardTable', {
+			//Options
+			columns: [
+				{ data: "Identifier" },
+				{ data: "First iteration" },
+				{ data: "Accumulated" },
+				{ data: "Avg Per Call" },
+				{ data: "Call count" }
+			]
+		});
+
+
 		function startSocketConnection() {
-			let host = document.getElementById("host").value;
-			let port = document.getElementById("port").value;
-			let repo = document.getElementById("repo").value;
+			HideServerConnection();
+
+			const host = document.getElementById("host").value;
+			const port = document.getElementById("port").value;
+			const repo = document.getElementById("repo").value;
 
 			vscode.postMessage({
 				command: 'startSocket',
@@ -68,6 +95,14 @@
 				port: port,
 				repo: repo
 			})
+		}
+
+		function HideServerConnection() {
+			document.getElementById("serverConnection").style.display = "none";
+		}
+
+		function ShowServerConnection() {
+			document.getElementById("serverConnection").style.display = "block";
 		}
 
 		//Does not have to be a dictionary
@@ -82,6 +117,9 @@
 
 			const file = fileSelector.files[0];
 
+			// Hiding connection tab while loading data
+			HideServerConnection();
+
 			vscode.postMessage({
 				command: 'readFromFile',
 				path: file.path
@@ -89,76 +127,81 @@
 		}
 
 		function addGraph(id) {
-			var newHeader = document.createElement('h1');
+			let newHeader = document.createElement('h2');
 			newHeader.innerHTML = id;
-			document.body.appendChild(newHeader);
 
-			var newTable = document.createElement('table');
+			const graphDiv = document.getElementById("graphs");
+
+			graphDiv.appendChild(newHeader);
+
+			let newTable = document.createElement('table');
 			newTable.id = id + "Table";
-			newTable.innerHTML = "<tr><th>First iteration</th><th>Accumulated</th><th>Per Call</th></tr>"
-			var newRow = newTable.insertRow(1);
+			newTable.innerHTML = "<tr><th>First iteration</th><th>Accumulated</th><th>Avg. Per Call</th><th>Call count</th></tr>"
+			let newRow = newTable.insertRow(1);
 			newRow.id = id + "Row";
-			var newCell1 = newRow.insertCell(0);
+			let newCell1 = newRow.insertCell(0);
 			newCell1.id = id + "Cell1";
 			newCell1.innerHTML = "0";
-			var newCell2 = newRow.insertCell(1);
+			let newCell2 = newRow.insertCell(1);
 			newCell2.id = id + "Cell2";
 			newCell2.innerHTML = "0";
-			var newCell3 = newRow.insertCell(2);
+			let newCell3 = newRow.insertCell(2);
 			newCell3.id = id + "Cell3";
 			newCell3.innerHTML = "0";
-			document.body.appendChild(newTable);
-
-
-
-			var newDiv = document.createElement('div');
-			newDiv.id = id;
-			newDiv.style = "width:600px;height:250px;";
-			document.body.appendChild(newDiv);
-
-			plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'lines', line: { color: '#80CAF6' } }]))
-		}
-
-		function UpdateStats(id, first, acc, per_call) { //TODO just get table once and update values
-			var cell1 = document.getElementById(id + "Cell1");
-			cell1.innerHTML = first;
-			var cell2 = document.getElementById(id + "Cell2");
-			cell2.innerHTML = acc;
-			var cell3 = document.getElementById(id + "Cell3");
-			cell3.innerHTML = per_call;
-		}
-
-		function UpdateLeaderBoardData(id, first, acc, per_call) {
-			var newRow = document.createElement("tr");
-			newRow.id = id + "Row";
-			var newCell1 = newRow.insertCell(0);
-			newCell1.id = id + "Cell1";
-			newCell1.innerHTML = id;
-			var newCell2 = newRow.insertCell(1);
-			newCell2.id = id + "Cell2";
-			newCell2.innerHTML = first;
-			var newCell3 = newRow.insertCell(2);
-			newCell3.id = id + "Cell3";
-			newCell3.innerHTML = acc;
-			var newCell4 = newRow.insertCell(3);
+			let newCell4 = newRow.insertCell(3);
 			newCell4.id = id + "Cell4";
-			newCell4.innerHTML = per_call;
-			document.getElementById("LeaderboardRows").appendChild(newRow);
+			newCell4.innerHTML = "0";
+			graphDiv.appendChild(newTable);
+
+			let newDiv = document.createElement('div');
+			newDiv.id = id;
+			newDiv.className = "plotly-graph";
+			graphDiv.appendChild(newDiv);
+
+			const layout = {
+				autosize: true,
+				title: id,
+				xaxis: {
+					title: 'Call'
+				},
+				yaxis: {
+					title: 'PKG'
+				}
+			};
+
+			plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'scatter' }], layout));
+		}
+
+		function UpdateStats(id, first, acc, per_call, calls) { //TODO just get table once and update values
+			let cell1 = document.getElementById(id + "Cell1");
+			cell1.innerHTML = first;
+			let cell2 = document.getElementById(id + "Cell2");
+			cell2.innerHTML = acc;
+			let cell3 = document.getElementById(id + "Cell3");
+			cell3.innerHTML = per_call;
+			let cell4 = document.getElementById(id + "Cell4");
+			cell4.innerHTML = calls
+		}
+
+		function UpdateLeaderBoardData(id, first, acc, per_call, calls) {
+			table.row.add({
+				"Identifier": id,
+				"First iteration": first,
+				"Accumulated": acc,
+				"Avg Per Call": per_call,
+				"Call count": calls
+			});
 		}
 
 		function UpdateLeaderboard(dict) {
 
 			for (const [key, value] of Object.entries(dict)) {
 				console.log(key, value);
-				UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1]) / (value[2])));
+				UpdateLeaderBoardData(value[3], value[0], value[1], (value[1] / value[2]).toFixed(2), value[2]);
 			}
-
-			let table = new DataTable('#LeaderboardTable', {
-				//Options
-			});
+			table.order([2, 'desc']);
+			table.draw();
 		}
-
-
 
 		// Handle the message inside the webview
 		window.addEventListener('message', event => {
@@ -177,11 +220,12 @@
 					break;
 
 				case 'updateStats':
-					UpdateStats(message.id, message.first, message.acc, message.per_call);
+					UpdateStats(message.id, message.first, message.acc, message.per_call, message.calls);
 					break;
 
 				case 'SocketClosed':
 					UpdateLeaderboard(message.dict);
+					ShowServerConnection();
 			}
 		});
 
