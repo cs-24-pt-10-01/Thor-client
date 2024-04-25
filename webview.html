@@ -53,7 +53,7 @@
 					<th>Identifier</th>
 					<th>First iteration</th>
 					<th>Accumulated</th>
-					<th>Per Call</th>
+					<th>Avg. Per Call</th>
 					<th>Call count</th>
 				</tr>
 			</thead>
@@ -76,7 +76,7 @@
 				{ data: "Identifier" },
 				{ data: "First iteration" },
 				{ data: "Accumulated" },
-				{ data: "Per Call" },
+				{ data: "Avg Per Call" },
 				{ data: "Call count" }
 			]
 		});
@@ -136,7 +136,7 @@
 
 			let newTable = document.createElement('table');
 			newTable.id = id + "Table";
-			newTable.innerHTML = "<tr><th>First iteration</th><th>Accumulated</th><th>Per Call</th></tr>"
+			newTable.innerHTML = "<tr><th>First iteration</th><th>Accumulated</th><th>Avg. Per Call</th><th>Call count</th></tr>"
 			let newRow = newTable.insertRow(1);
 			newRow.id = id + "Row";
 			let newCell1 = newRow.insertCell(0);
@@ -148,6 +148,9 @@
 			let newCell3 = newRow.insertCell(2);
 			newCell3.id = id + "Cell3";
 			newCell3.innerHTML = "0";
+			let newCell4 = newRow.insertCell(3);
+			newCell4.id = id + "Cell4";
+			newCell4.innerHTML = "0";
 			graphDiv.appendChild(newTable);
 
 			let newDiv = document.createElement('div');
@@ -166,16 +169,18 @@
 				}
 			};
 
-			plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'scatter', line: { color: '#80CAF6' } }], layout))
+			plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'scatter' }], layout));
 		}
 
-		function UpdateStats(id, first, acc, per_call) { //TODO just get table once and update values
+		function UpdateStats(id, first, acc, per_call, calls) { //TODO just get table once and update values
 			let cell1 = document.getElementById(id + "Cell1");
 			cell1.innerHTML = first;
 			let cell2 = document.getElementById(id + "Cell2");
 			cell2.innerHTML = acc;
 			let cell3 = document.getElementById(id + "Cell3");
 			cell3.innerHTML = per_call;
+			let cell4 = document.getElementById(id + "Cell4");
+			cell4.innerHTML = calls
 		}
 
 		function UpdateLeaderBoardData(id, first, acc, per_call, calls) {
@@ -183,7 +188,7 @@
 				"Identifier": id,
 				"First iteration": first,
 				"Accumulated": acc,
-				"Per Call": per_call,
+				"Avg Per Call": per_call,
 				"Call count": calls
 			});
 		}
@@ -192,7 +197,7 @@
 
 			for (const [key, value] of Object.entries(dict)) {
 				console.log(key, value);
-				UpdateLeaderBoardData(value[3], value[0], value[1], ((value[1]) / (value[2])), value[2]);
+				UpdateLeaderBoardData(value[3], value[0], value[1], (value[1] / value[2]).toFixed(2), value[2]);
 			}
 			table.draw();
 		}
@@ -214,7 +219,7 @@
 					break;
 
 				case 'updateStats':
-					UpdateStats(message.id, message.first, message.acc, message.per_call);
+					UpdateStats(message.id, message.first, message.acc, message.per_call, message.calls);
 					break;
 
 				case 'SocketClosed':

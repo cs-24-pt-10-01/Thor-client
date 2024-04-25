@@ -77,11 +77,11 @@ function activate(context) {
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('thorClient.UpdateStats', (id_arg, first_arg, acc_arg, per_call_arg) => {
+		vscode.commands.registerCommand('thorClient.UpdateStats', (id_arg, first_arg, acc_arg, per_call_arg, calls_arg) => {
 			if (!currentPanel) { //skal testes uden dette
 				return;
 			}
-			currentPanel.webview.postMessage({ command: 'updateStats', id: id_arg, first: first_arg, acc: acc_arg, per_call: per_call_arg });
+			currentPanel.webview.postMessage({ command: 'updateStats', id: id_arg, first: first_arg, acc: acc_arg, per_call: per_call_arg, calls: calls_arg });
 		})
 	);
 
@@ -134,7 +134,8 @@ function handleData(jsonData) {
 
 			dict[identifier][1] += energyUsed;
 			dict[identifier][2] += 1;
-			vscode.commands.executeCommand('thorClient.UpdateStats', identifier, dict[identifier][0], dict[identifier][1], ((dict[identifier][1]) / (dict[identifier][2])));
+			const avg = (dict[identifier][1] / dict[identifier][2]).toFixed(2) // rounded to two decimals
+			vscode.commands.executeCommand('thorClient.UpdateStats', identifier, dict[identifier][0], dict[identifier][1], avg, dict[identifier][2]);
 		}
 	}
 }
