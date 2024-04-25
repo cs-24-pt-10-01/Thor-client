@@ -2,7 +2,7 @@
   "name": "thor-client",
   "displayName": "Thor-Client",
   "description": "A client that can be used to utilize Thor (a HotSport detection Tool)",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.87.0"
   },
