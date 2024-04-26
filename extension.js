@@ -130,25 +130,27 @@ function handleDataWrapper(jsonData, shouldEstimate){
 }
 
 function estimateValues(jsonData){
-	const newestElement = jsonData[jsonData.length-1];
-	const newestMeasuredTimestamp = newestElement.local_client_packet.timestamp;
-	const newestMeasuredValue = newestElement.rapl_measurement.Intel ? newestElement.rapl_measurement.Intel.pkg : newestElement.rapl_measurement.AMD.pkg;
+	const newestElement = jsonData[jsonData.length-1]; //The newest element has the new (and higher) energy value.
+	const newestMeasuredTimestamp = newestElement.local_client_packet.timestamp; //timestamp of the newest element
+	const newestMeasuredValue = newestElement.rapl_measurement.Intel ? newestElement.rapl_measurement.Intel.pkg : newestElement.rapl_measurement.AMD.pkg; //The value from the newest element
 
 	jsonData.forEach(element => {
-		const currentTimestamp = element.local_client_packet.timestamp;
+		const currentTimestamp = element.local_client_packet.timestamp; //timestamp of the current element
 
-		const timePeriod = newestMeasuredTimestamp - lastMeasuredTimestamp;
-		const timePeriodUsed = currentTimestamp - lastMeasuredTimestamp; 
+		const timePeriod = newestMeasuredTimestamp - lastMeasuredTimestamp; //The time used from the last element to the newest element.
+		const timePeriodUsed = currentTimestamp - lastMeasuredTimestamp; //The time the current element have used from the timePeriod
+		
+		//handle devide by 0 error.
 		let percentTimeUsed = 0; 
-		if(timePeriod != 0){
+		if(timePeriod != 0){ 
 			percentTimeUsed = (timePeriodUsed / timePeriod);
 		}
 
-		lastMeasuredTimestamp = currentTimestamp;
-		const valueDiff = newestMeasuredValue - lastMeasuredValue;
-		const currentEstimatedValue = (element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg) + (valueDiff * percentTimeUsed);
-		element.rapl_measurement.Intel ? (element.rapl_measurement.Intel.pkg = currentEstimatedValue) : (element.rapl_measurement.AMD.pkg = currentEstimatedValue);
-		
+		lastMeasuredTimestamp = currentTimestamp; //with the current element being accounted for, the period of available time is now from the current elements timestamp.
+		const valueDiff = newestMeasuredValue - lastMeasuredValue; //The value difference between the old value and the new value.
+		const currentEstimatedValue = (element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg) + (valueDiff * percentTimeUsed); //The estimated energy used is a percentage of the value difference
+		element.rapl_measurement.Intel ? (element.rapl_measurement.Intel.pkg = currentEstimatedValue) : (element.rapl_measurement.AMD.pkg = currentEstimatedValue); //set new value
+		lastMeasuredValue = currentEstimatedValue; //Set the new previous value
 		
 	});
 	return jsonData;
