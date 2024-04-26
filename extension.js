@@ -134,18 +134,17 @@ function startSocket(host, port, repo) {
 		if (flag) {
 			clearInterval(sender);
 			for (const val of queue) {
-				json = JSON.parse(val);
+				const json = JSON.parse(val);
 				handleData(json);
 				writeJsonToFile(json, __dirname + '/data.json');
 			}
 		}
-
-		if (queue.length > 0) {
-			json = JSON.parse(queue.shift());
+		else if (queue.length > 0) {
+			const json = JSON.parse(queue.shift());
 			handleData(json);
 			writeJsonToFile(json, __dirname + '/data.json');
 		}
-	}, 1000);
+	}, 1000); // delay for prioritizing accepting data
 
 	const endString = "end"; // string used to indicate end of data by the server
 	const end = new Buffer.from(endString);
@@ -189,6 +188,7 @@ function startSocket(host, port, repo) {
 
 	client.on("close", () => {
 		socketClosed(dict);
+		flag = true;
 		while (queue.length > 0) {
 
 		}
