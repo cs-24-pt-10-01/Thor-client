@@ -102,27 +102,30 @@ var lastMeasuredValue = -1; //Used to keep track of the last measured value. -1 
 var lastMeasuredTimestamp = -1; //Used to keep track of the timestamp of the last measured value. -1 is not possible
 var tempList = []; //TODO: der kan være data tilbage hvis ikke at det slutter på en ændring i value. kan gøres at når socket.clsoe bliver kørt at den så tilføjer det sidste.
 
-function handleDataWrapper(jsonData, shouldEstimate = false){
+function handleDataWrapper(jsonData, shouldEstimate){
 	if(shouldEstimate == false){
 		handleData(jsonData)
+	}else{
+
+		jsonData.forEach(element => {
+			tempList.push(element)
+			const value = element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg;
+
+			if(lastMeasuredValue == -1){
+				lastMeasuredValue = value;
+				lastMeasuredTimestamp = element.local_client_packet.timestamp;
+			}
+			else{
+				if(lastMeasuredValue < value){//a change in value
+					const estimatedValues = estimateValues(tempList);
+					handleData(estimatedValues);
+					tempList = []; //Reset
+				}
+			}
+		});
 	}
 
-	jsonData.forEach(element => {
-		tempList.push(element)
-		const value = element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg;
-
-		if(lastMeasuredValue == -1){
-			lastMeasuredValue = value;
-			lastMeasuredTimestamp = element.local_client_packet.timestamp;
-		}
-		else{
-			if(lastMeasuredValue < value){//a change in value
-				const estimatedValues = estimateValues(tempList);
-				handleData(estimatedValues);
-				tempList = []; //Reset
-			}
-		}
-	});
+	
 	
 }
 
@@ -271,7 +274,7 @@ function readFromFile(path) {
 	try {
 		const data = fs.readFileSync(path);
 		const jsonData = JSON.parse(data);
-		handleData(jsonData);
+		handleDataWrapper(jsonData);
 
 		// simulating stop
 		vscode.commands.executeCommand('thorClient.SocketClosed', dict);
