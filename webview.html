@@ -169,7 +169,7 @@
 				}
 			};
 
-			plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'scatter' }], layout));
+			//plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'scatter' }], layout));
 		}
 
 		function UpdateStats(id, first, acc, per_call, calls) { //TODO just get table once and update values
@@ -223,7 +223,7 @@
 					UpdateStats(message.id, message.first, message.acc, message.per_call, message.calls);
 					break;
 
-				case 'SocketClosed':
+				case 'socketClosed':
 					UpdateLeaderboard(message.dict);
 					ShowServerConnection();
 			}
