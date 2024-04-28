@@ -31,7 +31,8 @@
 </style>
 
 <body>
-	<div class="section" id="serverConnection">
+	<button onclick="UpdateLeaderboard(dict)"> Update Leaderboard</button>
+	<div class=" section" id="serverConnection">
 		<h1>Server Connection</h1>
 		<p>Address:</p>
 		<input type="text" id="host" value="127.0.0.1">
@@ -63,7 +64,7 @@
 	</div>
 
 	<div class="section">
-		<H1>Graphs</H1>
+		<H1>Graphs (Click on names of function to see graph)</H1>
 		<div id="graphs"></div>
 	</div>
 
@@ -80,6 +81,8 @@
 				{ data: "Call count" }
 			]
 		});
+
+		const runs = {}; // table containing all runs of functions
 
 
 		function startSocketConnection() {
@@ -130,6 +133,24 @@
 			let newHeader = document.createElement('h2');
 			newHeader.innerHTML = id;
 
+			newHeader.onclick = () => {
+				const layout = {
+					autosize: true,
+					title: id,
+					xaxis: {
+						title: 'Call'
+					},
+					yaxis: {
+						title: 'PKG'
+					}
+				};
+
+				console.log(runs)
+				console.log(runs[id])
+
+				plots.id = (Plotly.newPlot(id, [{ y: runs[id], mode: 'scatter' }], layout));
+			}
+
 			const graphDiv = document.getElementById("graphs");
 
 			graphDiv.appendChild(newHeader);
@@ -157,19 +178,6 @@
 			newDiv.id = id;
 			newDiv.className = "plotly-graph";
 			graphDiv.appendChild(newDiv);
-
-			const layout = {
-				autosize: true,
-				title: id,
-				xaxis: {
-					title: 'Call'
-				},
-				yaxis: {
-					title: 'PKG'
-				}
-			};
-
-			//plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'scatter' }], layout));
 		}
 
 		function UpdateStats(id, first, acc, per_call, calls) { //TODO just get table once and update values
@@ -183,21 +191,28 @@
 			cell4.innerHTML = calls
 		}
 
-		function UpdateLeaderBoardData(id, first, acc, per_call, calls) {
-			table.row.add({
+		function AddRowToLeaderBoard(id, first, acc, per_call, calls) {
+			const row = table.row((idx, data, node) => data.Identifier === id).data();
+			const rowData = {
 				"Identifier": id,
 				"First iteration": first,
 				"Accumulated": acc,
 				"Avg Per Call": per_call,
 				"Call count": calls
-			});
+			}
+
+			if (row) {
+				table.row((idx, data, node) => data.Identifier === id).data(rowData);
+			} else {
+				table.row.add(rowData);
+			}
 		}
 
 		function UpdateLeaderboard(dict) {
 
 			for (const [key, value] of Object.entries(dict)) {
 				console.log(key, value);
-				UpdateLeaderBoardData(value[3], value[0], value[1], (value[1] / value[2]).toFixed(2), value[2]);
+				AddRowToLeaderBoard(value[3], value[0], value[1], (value[1] / value[2]).toFixed(2), value[2]);
 			}
 			table.order([2, 'desc']);
 			table.draw();
@@ -209,6 +224,10 @@
 			const message = event.data; // The JSON data our extension sent
 
 			switch (message.command) {
+				case 'data':
+					handleData(message.data);
+					break;
+
 				case 'updateGraph':
 					Plotly.extendTraces(message.id, {
 						y: [[message.value]]
@@ -228,6 +247,68 @@
 					ShowServerConnection();
 			}
 		});
+
+		function updateGraph(id, value) {
+			/*
+			Plotly.extendTraces(id, {
+				y: [[value]]
+			}, [0]);
+			*/
+		}
+
+		const idThreadDict = {};
+		const dict = {}; //data about the different measurements
+		//dict[0]: Energy used in first iteration
+		//dict[1]: total energy used
+		//dict[2]: count (amount of emasurements taken)
+		//dict[3]: identifier
+
+
+		function handleData(jsonData) {
+			const data = JSON.parse(jsonData);
+			for (const val of data) {
+				const identifier = val.local_client_packet.id;
+				const threadId = val.local_client_packet.thread_id;
+
+				// checking if the measurement is from an Intel or AMD processor
+				const value = val.rapl_measurement.Intel ? val.rapl_measurement.Intel.pkg : val.rapl_measurement.AMD.pkg;
+
+				const operation = val.local_client_packet.operation;
+
+				const key = identifier + threadId;
+				if (operation == "Start") {
+					idThreadDict[key] = value;
+					if (!runs[identifier]) {
+						runs[identifier] = [];
+					}
+				} else {
+					if (idThreadDict[key] == undefined) {
+						console.log("Start not found for key: " + key);
+						continue
+					}
+					const energyUsed = value - idThreadDict[key];
+
+					const run = runs[identifier];
+					run.push(energyUsed);
+
+					if (!(identifier in dict)) {
+						addGraph(identifier);
+						//				   [first, accumulated, amount of times seen, identifier(used for debugging)] //TODO remove debug identifier
+						dict[identifier] = [energyUsed, 0, 0, identifier];
+					}
+
+					updateGraph(identifier, energyUsed);
+
+					dict[identifier][1] += energyUsed;
+					dict[identifier][2] += 1;
+					const avg = (dict[identifier][1] / dict[identifier][2]).toFixed(2) // rounded to two decimals
+					UpdateStats(identifier, dict[identifier][0], dict[identifier][1], avg, dict[identifier][2]);
+
+					AddRowToLeaderBoard(identifier, dict[identifier][0], dict[identifier][1], avg, dict[identifier][2]);
+				}
+			}
+			table.draw();
+		}
 
 	</script>
 

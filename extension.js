@@ -128,21 +128,24 @@ function handleData(jsonData) {
 const queue = [];
 
 function startSocket(host, port, repo) {
+	const writeStream = fs.createWriteStream(__dirname + '/data.json', { flags: 'w' });
+
 	let flag = false;
 
-	const sender = setInterval(() => {
+	const sender = setInterval(async () => {
 		if (flag) {
 			clearInterval(sender);
 			for (const val of queue) {
-				const json = JSON.parse(val);
-				handleData(json);
-				writeJsonToFile(json, __dirname + '/data.json');
+				await currentPanel.webview.postMessage({ command: 'data', data: val });
+				writeStream.write(val + ",");
 			}
+			endJsonFile(__dirname + '/data.json');
+			writeStream.end();
 		}
 		else if (queue.length > 0) {
-			const json = JSON.parse(queue.shift());
-			handleData(json);
-			writeJsonToFile(json, __dirname + '/data.json');
+			const next = queue.shift();
+			await currentPanel.webview.postMessage({ command: 'data', data: next });
+			writeStream.write(next + ",");
 		}
 	}, 1000); // delay for prioritizing accepting data
 
@@ -198,18 +201,29 @@ function startSocket(host, port, repo) {
 }
 
 // write data to file, endJsonFile should be called after all date is written
-function writeJsonToFile(data, path = 'data.json') {
+async function writeJsonToFile(data, path = 'data.json') {
 	if (!fs.existsSync(path)) {
-		fs.writeFileSync(path, '[', 'utf8');
+		await fs.writeFile(path, '[', 'utf8', (err) => {
+			if (err) {
+				console.log("failed to write file", err);
+			}
+		});
 	}
 
-	for (const val of data) {
-		fs.appendFileSync(path, JSON.stringify(val) + ",", 'utf8');
+	const json = JSON.parse(data);
+
+	for (const val of json) {
+		await fs.appendFile(path, JSON.stringify(val) + ",", 'utf8', (err) => {
+			if (err) {
+				console.log("failed to write file", err);
+			}
+		});
+		//fs.appendFileSync(path, JSON.stringify(val) + ",", 'utf8');
 	}
 }
 
 // ends the json file with a ']'
-function endJsonFile(path = 'data.json') {
+async function endJsonFile(path = 'data.json') {
 	if (!fs.existsSync(path)) {
 		console.log("no file written");
 		return;
