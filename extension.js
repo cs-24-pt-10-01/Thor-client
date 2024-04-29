@@ -129,6 +129,7 @@ const queue = [];
 
 function startSocket(host, port, repo) {
 	const writeStream = fs.createWriteStream(__dirname + '/data.json', { flags: 'w' });
+	writeStream.write('[');
 
 	let flag = false;
 
@@ -136,18 +137,25 @@ function startSocket(host, port, repo) {
 		if (flag) {
 			clearInterval(sender);
 			for (const val of queue) {
-				await currentPanel.webview.postMessage({ command: 'data', data: val });
-				writeStream.write(val + ",");
+				const json = JSON.parse(val);
+				await currentPanel.webview.postMessage({ command: 'data', data: json });
+				for (const item of json) {
+					writeStream.write(JSON.stringify(item) + ",");
+				}
 			}
 			endJsonFile(__dirname + '/data.json');
 			writeStream.end();
 		}
 		else if (queue.length > 0) {
 			const next = queue.shift();
-			await currentPanel.webview.postMessage({ command: 'data', data: next });
-			writeStream.write(next + ",");
+			const json = JSON.parse(next);
+			await currentPanel.webview.postMessage({ command: 'data', data: json });
+
+			for (const item of json) {
+				writeStream.write(JSON.stringify(item) + ",");
+			}
 		}
-	}, 1000); // delay for prioritizing accepting data
+	}, 100); // delay for prioritizing accepting data
 
 	const endString = "end"; // string used to indicate end of data by the server
 	const end = new Buffer.from(endString);
@@ -239,12 +247,13 @@ function readFromFile(path) {
 	try {
 		const data = fs.readFileSync(path);
 		const jsonData = JSON.parse(data);
-		handleData(jsonData);
+		currentPanel.webview.postMessage({ command: 'data', data: jsonData });
 
 		// simulating stop
 		socketClosed(dict);
 	}
 	catch (err) {
+		socketClosed(dict);
 		console.error("failed to read file", err);
 	}
 }

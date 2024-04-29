@@ -31,7 +31,6 @@
 </style>
 
 <body>
-	<button onclick="UpdateLeaderboard(dict)"> Update Leaderboard</button>
 	<div class=" section" id="serverConnection">
 		<h1>Server Connection</h1>
 		<p>Address:</p>
@@ -81,12 +80,14 @@
 				{ data: "Call count" }
 			]
 		});
+		table.order([2, 'desc']);
 
 		const runs = {}; // table containing all runs of functions
 
 
 		function startSocketConnection() {
 			HideServerConnection();
+			resetData();
 
 			const host = document.getElementById("host").value;
 			const port = document.getElementById("port").value;
@@ -118,10 +119,12 @@
 				return;
 			}
 
+
 			const file = fileSelector.files[0];
 
 			// Hiding connection tab while loading data
 			HideServerConnection();
+			resetData();
 
 			vscode.postMessage({
 				command: 'readFromFile',
@@ -144,9 +147,6 @@
 						title: 'PKG'
 					}
 				};
-
-				console.log(runs)
-				console.log(runs[id])
 
 				plots.id = (Plotly.newPlot(id, [{ y: runs[id], mode: 'scatter' }], layout));
 			}
@@ -209,13 +209,14 @@
 		}
 
 		function UpdateLeaderboard(dict) {
-
+			/*
 			for (const [key, value] of Object.entries(dict)) {
 				console.log(key, value);
 				AddRowToLeaderBoard(value[3], value[0], value[1], (value[1] / value[2]).toFixed(2), value[2]);
 			}
 			table.order([2, 'desc']);
 			table.draw();
+			*/
 		}
 
 		// Handle the message inside the webview
@@ -225,7 +226,12 @@
 
 			switch (message.command) {
 				case 'data':
-					handleData(message.data);
+					try {
+						handleData(message.data);
+					} catch (error) {
+						console.error(error);
+						console.log(message.data);
+					}
 					break;
 
 				case 'updateGraph':
@@ -243,7 +249,6 @@
 					break;
 
 				case 'socketClosed':
-					UpdateLeaderboard(message.dict);
 					ShowServerConnection();
 			}
 		});
@@ -265,8 +270,7 @@
 
 
 		function handleData(jsonData) {
-			const data = JSON.parse(jsonData);
-			for (const val of data) {
+			for (const val of jsonData) {
 				const identifier = val.local_client_packet.id;
 				const threadId = val.local_client_packet.thread_id;
 
@@ -308,6 +312,20 @@
 				}
 			}
 			table.draw();
+		}
+
+		function resetData() {
+			// clear graphs section
+			document.getElementById("graphs").innerHTML = "";
+
+			// remove plots form dict
+			for (const val in plots) delete plots[val];
+
+			table.clear();
+			// clear data
+			for (const val in runs) delete runs[val];
+			for (const val in dict) delete dict[val];
+			for (const val in idThreadDict) delete idThreadDict[val];
 		}
 
 	</script>
