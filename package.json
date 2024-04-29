@@ -1,0 +1,65 @@
+{
+  "name": "thor-client",
+  "displayName": "Thor-Client",
+  "description": "A client that can be used to utilize Thor (a HotSport detection Tool)",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.87.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "thorClient.start",
+        "title": "Start Client",
+        "category": "Thor Client"
+      },
+      {
+        "command": "thorClient.startSocket",
+        "title": "Start Socket",
+        "category": "Thor Client"
+      },
+      {
+        "command": "thorClient.UpdateGraph",
+        "title": "Update Graph",
+        "category": "Thor Client"
+      },
+      {
+        "command": "thorClient.AddGraph",
+        "title": "Add Graph",
+        "category": "Thor Client"
+      },
+      {
+        "command": "thorClient.UpdateStats",
+        "title": "Add Graph",
+        "category": "Thor Client"
+      },
+      {
+        "command": "thorClient.SocketClosed",
+        "title": "Socket Connection Closed",
+        "category": "Thor Client"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.87.0",
+    "@vscode/test-cli": "^0.0.6",
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "plotly.js-dist": "^2.30.1"
+  }
+}
