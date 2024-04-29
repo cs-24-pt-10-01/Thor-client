@@ -148,7 +148,7 @@ function estimateValues(jsonData){
 
 		lastMeasuredTimestamp = currentTimestamp; //with the current element being accounted for, the period of available time is now from the current elements timestamp.
 		const valueDiff = newestMeasuredValue - lastMeasuredValue; //The value difference between the old value and the new value.
-		const currentEstimatedValue = (element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg) + (valueDiff * percentTimeUsed); //The estimated energy used is a percentage of the value difference
+		const currentEstimatedValue = lastMeasuredValue + (valueDiff * percentTimeUsed); //The estimated energy used is a percentage of the value difference
 		element.rapl_measurement.Intel ? (element.rapl_measurement.Intel.pkg = currentEstimatedValue) : (element.rapl_measurement.AMD.pkg = currentEstimatedValue); //set new value
 		lastMeasuredValue = currentEstimatedValue; //Set the new previous value
 		
