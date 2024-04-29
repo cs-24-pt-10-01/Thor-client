@@ -113,7 +113,7 @@ function handleDataWrapper(jsonData, shouldEstimate){
 
 			if(lastMeasuredValue == -1){
 				lastMeasuredValue = value;
-				lastMeasuredTimestamp = element.local_client_packet.timestamp;
+				lastMeasuredTimestamp = element.process_under_test_packet.timestamp;
 			}
 			else{
 				if(lastMeasuredValue < value){//a change in value
@@ -131,11 +131,11 @@ function handleDataWrapper(jsonData, shouldEstimate){
 
 function estimateValues(jsonData){
 	const newestElement = jsonData[jsonData.length-1]; //The newest element has the new (and higher) energy value.
-	const newestMeasuredTimestamp = newestElement.local_client_packet.timestamp; //timestamp of the newest element
+	const newestMeasuredTimestamp = newestElement.process_under_test_packet.timestamp; //timestamp of the newest element
 	const newestMeasuredValue = newestElement.rapl_measurement.Intel ? newestElement.rapl_measurement.Intel.pkg : newestElement.rapl_measurement.AMD.pkg; //The value from the newest element
 
 	jsonData.forEach(element => {
-		const currentTimestamp = element.local_client_packet.timestamp; //timestamp of the current element
+		const currentTimestamp = element.process_under_test_packet.timestamp; //timestamp of the current element
 
 		const timePeriod = newestMeasuredTimestamp - lastMeasuredTimestamp; //The time used from the last element to the newest element.
 		const timePeriodUsed = currentTimestamp - lastMeasuredTimestamp; //The time the current element have used from the timePeriod
@@ -166,13 +166,13 @@ var dict = {}; //data about the different measurements
 
 function handleData(jsonData) {
 	for (const val of jsonData) {
-		const identifier = val.local_client_packet.id;
-		const threadId = val.local_client_packet.thread_id;
+		const identifier = val.process_under_test_packet.id;
+		const threadId = val.process_under_test_packet.thread_id;
 
 		// checking if the measurement is from an Intel or AMD processor
 		const value = val.rapl_measurement.Intel ? val.rapl_measurement.Intel.pkg : val.rapl_measurement.AMD.pkg;
 
-		const operation = val.local_client_packet.operation;
+		const operation = val.process_under_test_packet.operation;
 
 		const key = identifier + threadId;
 		if (operation == "Start") {
