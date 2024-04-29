@@ -37,10 +37,10 @@ function activate(context) {
 				message => {
 					switch (message.command) {
 						case 'startSocket':
-							startSocket(message.host, message.port, message.repo);
+							startSocket(message.host, message.port, message.repo, message.est);
 							return;
 						case 'readFromFile':
-							readFromFile(message.path);
+							readFromFile(message.path, message.est);
 							return;
 					}
 				},
@@ -245,6 +245,12 @@ function startSocket(host, port, repo, shouldEstimate) {
 	});
 
 	client.on("close", () => {
+		if(shouldEstimate){
+			if(tempList.length != 0){//check if there are any leftover elements
+				handleData(tempList); //since no change has occurd after these elements, it is not possible to estimate their value.
+			}
+		}
+
 		vscode.commands.executeCommand('thorClient.SocketClosed', dict);
 		endJsonFile(__dirname + '/data.json');
 		console.log("Connection closed");
@@ -272,13 +278,18 @@ function endJsonFile(path = 'data.json') {
 	fs.appendFileSync(path, ']', 'utf8');
 }
 
-function readFromFile(path) {
+function readFromFile(path, shouldEstimate) {
 	try {
 		const data = fs.readFileSync(path);
 		const jsonData = JSON.parse(data);
-		handleDataWrapper(jsonData);
+		handleDataWrapper(jsonData, shouldEstimate);
 
 		// simulating stop
+		if(shouldEstimate){
+			if(tempList.length != 0){//check if there are any leftover elements
+				handleData(tempList); //since no change has occurd after these elements, it is not possible to estimate their value.
+			}
+		}
 		vscode.commands.executeCommand('thorClient.SocketClosed', dict);
 	}
 	catch (err) {

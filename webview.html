@@ -160,7 +160,7 @@
 			const host = document.getElementById("host").value;
 			const port = document.getElementById("port").value;
 			const repo = document.getElementById("repo").value;
-			const estimate = document.getElementById("checkbox_estimate");
+			const estimate = document.getElementById("checkbox_estimate").checked;
 		
 			vscode.postMessage({
 				command: 'startSocket',
@@ -183,6 +183,7 @@
 		var plots = {};
 
 		function SelectFile() {
+			const estimate = document.getElementById("checkbox_estimate").checked;
 			const fileSelector = document.getElementById('file');
 			// do nothing if no file is selected
 			if (fileSelector.files.length == 0) {
@@ -196,7 +197,8 @@
 
 			vscode.postMessage({
 				command: 'readFromFile',
-				path: file.path
+				path: file.path,
+				est: estimate
 			});
 		}
 
