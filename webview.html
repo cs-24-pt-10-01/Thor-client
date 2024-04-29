@@ -271,13 +271,13 @@
 
 		function handleData(jsonData) {
 			for (const val of jsonData) {
-				const identifier = val.local_client_packet.id;
-				const threadId = val.local_client_packet.thread_id;
+				const identifier = val.process_under_test_packet.id;
+				const threadId = val.process_under_test_packet.thread_id;
 
 				// checking if the measurement is from an Intel or AMD processor
 				const value = val.rapl_measurement.Intel ? val.rapl_measurement.Intel.pkg : val.rapl_measurement.AMD.pkg;
 
-				const operation = val.local_client_packet.operation;
+				const operation = val.process_under_test_packet.operation;
 
 				const key = identifier + threadId;
 				if (operation == "Start") {
