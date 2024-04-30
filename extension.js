@@ -100,7 +100,7 @@ function activate(context) {
 
 var lastMeasuredValue = -1; //Used to keep track of the last measured value. -1 is not possible
 var lastMeasuredTimestamp = -1; //Used to keep track of the timestamp of the last measured value. -1 is not possible
-var tempList = []; //TODO: der kan være data tilbage hvis ikke at det slutter på en ændring i value. kan gøres at når socket.clsoe bliver kørt at den så tilføjer det sidste.
+var tempList = [];
 
 function handleDataWrapper(jsonData, shouldEstimate){
 	if(shouldEstimate == false){

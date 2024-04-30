@@ -29,7 +29,7 @@ This client provides a graphical interface for both requesting the profiling of 
 
 ## Release Notes
 
-### 1.0.0
+### 1.1.0
 
 "It just works" - Todd Howard, 2015
 
