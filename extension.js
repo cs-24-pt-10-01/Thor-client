@@ -102,21 +102,21 @@ var lastMeasuredValue = -1; //Used to keep track of the last measured value. -1 
 var lastMeasuredTimestamp = -1; //Used to keep track of the timestamp of the last measured value. -1 is not possible
 var tempList = [];
 
-function handleDataWrapper(jsonData, shouldEstimate){
-	if(shouldEstimate == false){
+function handleDataWrapper(jsonData, shouldEstimate) {
+	if (shouldEstimate == false) {
 		handleData(jsonData)
-	}else{
+	} else {
 		const estimatedJsonData = [];
 		jsonData.forEach(element => {
 			tempList.push(element)
 			const value = element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg;
 
-			if(lastMeasuredValue == -1){
+			if (lastMeasuredValue == -1) {
 				lastMeasuredValue = value;
 				lastMeasuredTimestamp = element.process_under_test_packet.timestamp;
 			}
-			else{
-				if(lastMeasuredValue < value){//a change in value
+			else {
+				if (lastMeasuredValue < value) {//a change in value
 					const estimatedValues = estimateValues(tempList);
 					estimatedJsonData.push(...estimatedValues);
 					tempList = []; //Reset
@@ -125,13 +125,10 @@ function handleDataWrapper(jsonData, shouldEstimate){
 		});
 		handleData(estimatedJsonData);
 	}
-
-	
-	
 }
 
-function estimateValues(jsonData){
-	const newestElement = jsonData[jsonData.length-1]; //The newest element has the new (and higher) energy value.
+function estimateValues(jsonData) {
+	const newestElement = jsonData[jsonData.length - 1]; //The newest element has the new (and higher) energy value.
 	const newestMeasuredTimestamp = newestElement.process_under_test_packet.timestamp; //timestamp of the newest element
 	const newestMeasuredValue = newestElement.rapl_measurement.Intel ? newestElement.rapl_measurement.Intel.pkg : newestElement.rapl_measurement.AMD.pkg; //The value from the newest element
 
@@ -140,10 +137,10 @@ function estimateValues(jsonData){
 
 		const timePeriod = newestMeasuredTimestamp - lastMeasuredTimestamp; //The time used from the last element to the newest element.
 		const timePeriodUsed = currentTimestamp - lastMeasuredTimestamp; //The time the current element have used from the timePeriod
-		
+
 		//handle devide by 0 error.
-		let percentTimeUsed = 0; 
-		if(timePeriod != 0){ 
+		let percentTimeUsed = 0;
+		if (timePeriod != 0) {
 			percentTimeUsed = (timePeriodUsed / timePeriod);
 		}
 
@@ -152,7 +149,7 @@ function estimateValues(jsonData){
 		const currentEstimatedValue = lastMeasuredValue + (valueDiff * percentTimeUsed); //The estimated energy used is a percentage of the value difference
 		element.rapl_measurement.Intel ? (element.rapl_measurement.Intel.pkg = currentEstimatedValue) : (element.rapl_measurement.AMD.pkg = currentEstimatedValue); //set new value
 		lastMeasuredValue = currentEstimatedValue; //Set the new previous value
-		
+
 	});
 	return jsonData;
 }
@@ -246,8 +243,8 @@ function startSocket(host, port, repo, shouldEstimate) {
 	});
 
 	client.on("close", () => {
-		if(shouldEstimate){
-			if(tempList.length != 0){//check if there are any leftover elements
+		if (shouldEstimate) {
+			if (tempList.length != 0) {//check if there are any leftover elements
 				handleData(tempList); //since no change has occurd after these elements, it is not possible to estimate their value.
 			}
 		}
@@ -286,8 +283,8 @@ function readFromFile(path, shouldEstimate) {
 		handleDataWrapper(jsonData, shouldEstimate);
 
 		// simulating stop
-		if(shouldEstimate){
-			if(tempList.length != 0){//check if there are any leftover elements
+		if (shouldEstimate) {
+			if (tempList.length != 0) {//check if there are any leftover elements
 				handleData(tempList); //since no change has occurd after these elements, it is not possible to estimate their value.
 			}
 		}
