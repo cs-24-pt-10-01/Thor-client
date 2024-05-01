@@ -106,7 +106,7 @@ function handleDataWrapper(jsonData, shouldEstimate){
 	if(shouldEstimate == false){
 		handleData(jsonData)
 	}else{
-
+		var estimatedJsonData = [];
 		jsonData.forEach(element => {
 			tempList.push(element)
 			const value = element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg;
@@ -118,11 +118,12 @@ function handleDataWrapper(jsonData, shouldEstimate){
 			else{
 				if(lastMeasuredValue < value){//a change in value
 					const estimatedValues = estimateValues(tempList);
-					handleData(estimatedValues);
+					estimatedJsonData.push(...estimatedValues);
 					tempList = []; //Reset
 				}
 			}
 		});
+		handleData(estimatedJsonData);
 	}
 
 	
@@ -195,7 +196,7 @@ function handleData(jsonData) {
 			dict[identifier][1] += energyUsed;
 			dict[identifier][2] += 1;
 			const avg = (dict[identifier][1] / dict[identifier][2]).toFixed(2) // rounded to two decimals
-			vscode.commands.executeCommand('thorClient.UpdateStats', identifier, dict[identifier][0], dict[identifier][1], avg, dict[identifier][2]);
+			vscode.commands.executeCommand('thorClient.UpdateStats', identifier, dict[identifier][0].toFixed(2), dict[identifier][1].toFixed(2), avg, dict[identifier][2]);
 		}
 	}
 }
