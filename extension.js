@@ -106,7 +106,7 @@ function handleDataWrapper(jsonData, shouldEstimate){
 	if(shouldEstimate == false){
 		handleData(jsonData)
 	}else{
-		var estimatedJsonData = [];
+		const estimatedJsonData = [];
 		jsonData.forEach(element => {
 			tempList.push(element)
 			const value = element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg;
