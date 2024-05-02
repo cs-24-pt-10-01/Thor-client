@@ -38,10 +38,10 @@ function activate(context) {
 				message => {
 					switch (message.command) {
 						case 'startSocket':
-							startSocket(message.host, message.port, message.repo);
+							startSocket(message.host, message.port, message.repo, message.est);
 							return;
 						case 'readFromFile':
-							readFromFile(message.path);
+							readFromFile(message.path, message.est);
 							return;
 					}
 				},
@@ -65,6 +65,13 @@ function addGraph(id_arg) {
 	}
 	currentPanel.webview.postMessage({ command: 'addGraph', id: id_arg });
 }
+/* TODO
+	context.subscriptions.push(
+		vscode.commands.registerCommand('thorClient.startSocket', (ip_arg, port_arg, repo_arg, est_arg) => {
+			startSocket(ip_arg, port_arg, repo_arg, est_arg);
+		})
+	);
+	*/
 
 function updateStats(id_arg, first_arg, acc_arg, per_call_arg, calls_arg) {
 	if (!currentPanel) {
@@ -79,6 +86,64 @@ function socketClosed(dict_arg) {
 		return;
 	}
 	currentPanel.webview.postMessage({ command: 'socketClosed', dict: dict_arg });
+}
+
+
+
+var lastMeasuredValue = -1; //Used to keep track of the last measured value. -1 is not possible
+var lastMeasuredTimestamp = -1; //Used to keep track of the timestamp of the last measured value. -1 is not possible
+var tempList = [];
+
+function handleDataWrapper(jsonData, shouldEstimate) {
+	if (shouldEstimate == false) {
+		handleData(jsonData)
+	} else {
+		const estimatedJsonData = [];
+		jsonData.forEach(element => {
+			tempList.push(element)
+			const value = element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg;
+
+			if (lastMeasuredValue == -1) {
+				lastMeasuredValue = value;
+				lastMeasuredTimestamp = element.process_under_test_packet.timestamp;
+			}
+			else {
+				if (lastMeasuredValue < value) {//a change in value
+					const estimatedValues = estimateValues(tempList);
+					estimatedJsonData.push(...estimatedValues);
+					tempList = []; //Reset
+				}
+			}
+		});
+		handleData(estimatedJsonData);
+	}
+}
+
+function estimateValues(jsonData) {
+	const newestElement = jsonData[jsonData.length - 1]; //The newest element has the new (and higher) energy value.
+	const newestMeasuredTimestamp = newestElement.process_under_test_packet.timestamp; //timestamp of the newest element
+	const newestMeasuredValue = newestElement.rapl_measurement.Intel ? newestElement.rapl_measurement.Intel.pkg : newestElement.rapl_measurement.AMD.pkg; //The value from the newest element
+
+	jsonData.forEach(element => {
+		const currentTimestamp = element.process_under_test_packet.timestamp; //timestamp of the current element
+
+		const timePeriod = newestMeasuredTimestamp - lastMeasuredTimestamp; //The time used from the last element to the newest element.
+		const timePeriodUsed = currentTimestamp - lastMeasuredTimestamp; //The time the current element have used from the timePeriod
+
+		//handle devide by 0 error.
+		let percentTimeUsed = 0;
+		if (timePeriod != 0) {
+			percentTimeUsed = (timePeriodUsed / timePeriod);
+		}
+
+		lastMeasuredTimestamp = currentTimestamp; //with the current element being accounted for, the period of available time is now from the current elements timestamp.
+		const valueDiff = newestMeasuredValue - lastMeasuredValue; //The value difference between the old value and the new value.
+		const currentEstimatedValue = lastMeasuredValue + (valueDiff * percentTimeUsed); //The estimated energy used is a percentage of the value difference
+		element.rapl_measurement.Intel ? (element.rapl_measurement.Intel.pkg = currentEstimatedValue) : (element.rapl_measurement.AMD.pkg = currentEstimatedValue); //set new value
+		lastMeasuredValue = currentEstimatedValue; //Set the new previous value
+
+	});
+	return jsonData;
 }
 
 
@@ -120,7 +185,8 @@ function handleData(jsonData) {
 			dict[identifier][1] += energyUsed;
 			dict[identifier][2] += 1;
 			const avg = (dict[identifier][1] / dict[identifier][2]).toFixed(2) // rounded to two decimals
-			updateStats(identifier, dict[identifier][0], dict[identifier][1], avg, dict[identifier][2]);
+			// TODO to fixed
+			vscode.commands.executeCommand('thorClient.UpdateStats', identifier, dict[identifier][0].toFixed(2), dict[identifier][1].toFixed(2), avg, dict[identifier][2]);
 		}
 	}
 }
@@ -183,6 +249,12 @@ function startSocket(host, port, repo) {
 			const dataBufferString = dataBuffer.toString().slice(0, -end.length);
 
 			queue.push(dataBufferString);
+			/* TODO move data wrapper
+			const jsonData = JSON.parse(dataBufferString);
+			handleDataWrapper(jsonData, shouldEstimate);
+
+			writeJsonToFile(jsonData, __dirname + '/data.json');
+			*/
 
 			// clearing buffer
 			dataBuffer = Buffer.alloc(0);
@@ -203,6 +275,15 @@ function startSocket(host, port, repo) {
 		while (queue.length > 0) {
 
 		}
+		/* TODO move data wrapper
+		if (shouldEstimate) {
+			if (tempList.length != 0) {//check if there are any leftover elements
+				handleData(tempList); //since no change has occurd after these elements, it is not possible to estimate their value.
+			}
+		}
+		*/
+
+		vscode.commands.executeCommand('thorClient.SocketClosed', dict);
 		endJsonFile(__dirname + '/data.json');
 		console.log("Connection closed");
 	});
@@ -243,7 +324,7 @@ async function endJsonFile(path = 'data.json') {
 	fs.appendFileSync(path, ']', 'utf8');
 }
 
-function readFromFile(path) {
+function readFromFile(path, shouldEstimate) {
 	try {
 		const data = fs.readFileSync(path);
 		const jsonData = JSON.parse(data);
@@ -251,6 +332,17 @@ function readFromFile(path) {
 
 		// simulating stop
 		socketClosed(dict);
+		/* TODO move data wrapper
+		handleDataWrapper(jsonData, shouldEstimate);
+
+		// simulating stop
+		if (shouldEstimate) {
+			if (tempList.length != 0) {//check if there are any leftover elements
+				handleData(tempList); //since no change has occurd after these elements, it is not possible to estimate their value.
+			}
+		}
+		vscode.commands.executeCommand('thorClient.SocketClosed', dict);
+		*/
 	}
 	catch (err) {
 		socketClosed(dict);
