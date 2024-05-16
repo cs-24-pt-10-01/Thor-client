@@ -224,7 +224,6 @@ function startSocket(host, port, repo) {
 	}, 100); // delay for prioritizing accepting data
 
 	const endString = "end"; // string used to indicate end of data by the server
-	const end = new Buffer.from(endString);
 
 	// if no repo, indicating observer by sending "none"
 	if (repo == "") {
@@ -241,26 +240,22 @@ function startSocket(host, port, repo) {
 	});
 
 	client.on("data", (data) => {
-		// if the endString is found then parse data else concat to buffer
-		if (data.subarray(data.length - end.length).toString() == endString) {
-			dataBuffer = Buffer.concat([dataBuffer, data]);
+		let string = Buffer.concat([dataBuffer, data]).toString();
+		let splits = string.split(endString);
 
-			// removing endString from data
-			const dataBufferString = dataBuffer.toString().slice(0, -end.length);
-
-			queue.push(dataBufferString);
-			/* TODO move data wrapper
-			const jsonData = JSON.parse(dataBufferString);
-			handleDataWrapper(jsonData, shouldEstimate);
-
-			writeJsonToFile(jsonData, __dirname + '/data.json');
-			*/
-
-			// clearing buffer
-			dataBuffer = Buffer.alloc(0);
-		}
-		else {
-			dataBuffer = Buffer.concat([dataBuffer, data]);
+		for (let i = 0; i < splits.length; i++) {
+			if (i == splits.length - 1) {
+				if (splits[i] != "") {
+					// saving incomplete data, for next chunk
+					dataBuffer = Buffer.from(splits[i]);
+				}
+				else {
+					// clearing buffer
+					dataBuffer = Buffer.alloc(0);
+				}
+				break;
+			}
+			queue.push(splits[i]);
 		}
 	});
 
