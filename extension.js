@@ -72,7 +72,6 @@ function startSocket(host, port, repo) {
 		if (flag) {
 			// stop interval
 			clearInterval(sender);
-			console.log("clearing interval")
 			for (const val of queue) {
 				const json = JSON.parse(val);
 				currentPanel.webview.postMessage({ command: 'data', data: json });
@@ -81,7 +80,6 @@ function startSocket(host, port, repo) {
 				}
 			}
 			writeStream.end(() => { endJsonFile(__dirname + '/data.json'); });
-			console.log("end of data");
 			socketClosed();
 		}
 		else if (queue.length > 0) {
