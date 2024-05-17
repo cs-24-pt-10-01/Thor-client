@@ -114,6 +114,8 @@
 		<input type="text" id="port" value="6969">
 		<p>Repository URL:</p>
 		<input type="text" id="repo" value=""> <br>
+		<p>Branch Name (leave empty for main)</p>
+		<input type="text" id="branch" value="">
 		<p>Estimate values:
 			<label class="switch">
 				<input type="checkbox" , id="checkbox_estimate">
@@ -178,14 +180,16 @@
 
 			const host = document.getElementById("host").value;
 			const port = document.getElementById("port").value;
+			const branch = document.getElementById("branch").value;
 			const repo = document.getElementById("repo").value;
+
 			estimate = document.getElementById("checkbox_estimate").checked;
 
 			vscode.postMessage({
 				command: 'startSocket',
 				host: host,
 				port: port,
-				repo: repo,
+				repo: branch == "" ? repo : repo + " " + branch,
 			})
 		}
 
@@ -457,6 +461,11 @@
 			for (const val in runs) delete runs[val];
 			for (const val in dict) delete dict[val];
 			for (const val in idThreadDict) delete idThreadDict[val];
+
+			// clear estimation variables
+			lastMeasuredValue = -1;
+			lastMeasuredTimestamp = -1;
+			tempList = [];
 		}
 
 	</script>
