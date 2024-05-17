@@ -141,7 +141,7 @@ function startSocket(host, port, repo) {
 }
 
 // ends the json file with a ']'
-async function endJsonFile(path = 'data.json') {
+function endJsonFile(path = 'data.json') {
 	if (!fs.existsSync(path)) {
 		console.log("no file written");
 		return;
