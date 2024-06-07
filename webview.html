@@ -129,12 +129,11 @@
 	</div>
 
 	<div class="section">
-		<h1>Leaderboard</h1>
+		<h1>Overview</h1>
 		<table id="LeaderboardTable">
 			<thead>
 				<tr>
 					<th>Identifier</th>
-					<th>First iteration</th>
 					<th>Accumulated</th>
 					<th>Avg. Per Call</th>
 					<th>Call count</th>
@@ -157,7 +156,7 @@
 			//Options
 			columns: [
 				{ data: "Identifier" },
-				{ data: "First iteration", title: "First iteration [Joules]" },
+				//{ data: "First iteration", title: "First iteration [Joules]" },
 				{ data: "Accumulated", title: "Accumulated [Joules]" },
 				{ data: "Avg Per Call", title: "Avg. Per Call [Joules]" },
 				{ data: "Call count" }
@@ -288,7 +287,7 @@
 			const row = table.row((idx, data, node) => data.Identifier === id).data();
 			const rowData = {
 				"Identifier": id,
-				"First iteration": first,
+				//"First iteration": first,
 				"Accumulated": acc,
 				"Avg Per Call": per_call,
 				"Call count": calls
