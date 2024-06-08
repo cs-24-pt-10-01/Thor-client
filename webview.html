@@ -12,6 +12,15 @@
 
 	<link rel="stylesheet" href="https://cdn.datatables.net/2.0.4/css/dataTables.dataTables.css" />
 	<script src="https://cdn.datatables.net/2.0.4/js/dataTables.js"></script>
+
+	<!-- table buttons -->
+	<script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.js"></script>
+	<script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.dataTables.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+	<script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.html5.min.js"></script>
+	<script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.print.min.js"></script>
 </head>
 
 <style>
@@ -70,15 +79,15 @@
 		transition: .4s;
 	}
 
-	input:checked + .slider {
+	input:checked+.slider {
 		background-color: #2196F3;
 	}
 
-	input:focus + .slider {
+	input:focus+.slider {
 		box-shadow: 0 0 1px #2196F3;
 	}
 
-	input:checked + .slider:before {
+	input:checked+.slider:before {
 		-webkit-transform: translateX(13px);
 		-ms-transform: translateX(13px);
 		transform: translateX(13px);
@@ -92,13 +101,12 @@
 	.slider.round:before {
 		border-radius: 50%;
 	}
+
 	/* End of copied CSS */
-
-
 </style>
 
 <body>
-	<div class="section" id="serverConnection">
+	<div class=" section" id="serverConnection">
 		<h1>Server Connection</h1>
 		<p>Address:</p>
 		<input type="text" id="host" value="127.0.0.1">
@@ -106,11 +114,14 @@
 		<input type="text" id="port" value="6969">
 		<p>Repository URL:</p>
 		<input type="text" id="repo" value=""> <br>
+		<p>Branch Name (leave empty for main)</p>
+		<input type="text" id="branch" value="">
 		<p>Estimate values:
-		<label class="switch">
-			<input type="checkbox", id="checkbox_estimate">
-			<span class="slider round"></span>
-		</label></p>
+			<label class="switch">
+				<input type="checkbox" , id="checkbox_estimate">
+				<span class="slider round"></span>
+			</label>
+		</p>
 		<button onclick="startSocketConnection()">Connect to server</button>
 		<br>
 		<p> or select file </p>
@@ -118,12 +129,11 @@
 	</div>
 
 	<div class="section">
-		<h1>Leaderboard</h1>
+		<h1>Overview</h1>
 		<table id="LeaderboardTable">
 			<thead>
 				<tr>
 					<th>Identifier</th>
-					<th>First iteration</th>
 					<th>Accumulated</th>
 					<th>Avg. Per Call</th>
 					<th>Call count</th>
@@ -135,7 +145,7 @@
 	</div>
 
 	<div class="section">
-		<H1>Graphs</H1>
+		<H1>Graphs (Click on names of function to see graph)</H1>
 		<div id="graphs"></div>
 	</div>
 
@@ -146,28 +156,39 @@
 			//Options
 			columns: [
 				{ data: "Identifier" },
-				{ data: "First iteration" },
-				{ data: "Accumulated" },
-				{ data: "Avg Per Call" },
+				//{ data: "First iteration", title: "First iteration [Joules]" },
+				{ data: "Accumulated", title: "Accumulated [Joules]" },
+				{ data: "Avg Per Call", title: "Avg. Per Call [Joules]" },
 				{ data: "Call count" }
-			]
+			],
+			layout: {
+				topStart: {
+					buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
+				}
+			}
 		});
+		table.order([2, 'desc']);
+
+		const runs = {}; // table containing all runs of functions
+		let estimate = false; // indicator of whether estimation is turned on
 
 
 		function startSocketConnection() {
 			HideServerConnection();
+			resetData();
 
 			const host = document.getElementById("host").value;
 			const port = document.getElementById("port").value;
+			const branch = document.getElementById("branch").value;
 			const repo = document.getElementById("repo").value;
-			const estimate = document.getElementById("checkbox_estimate").checked;
-		
+
+			estimate = document.getElementById("checkbox_estimate").checked;
+
 			vscode.postMessage({
 				command: 'startSocket',
 				host: host,
 				port: port,
-				repo: repo,
-				est: estimate
+				repo: branch == "" ? repo : repo + " " + branch,
 			})
 		}
 
@@ -183,28 +204,44 @@
 		var plots = {};
 
 		function SelectFile() {
-			const estimate = document.getElementById("checkbox_estimate").checked;
+			estimate = document.getElementById("checkbox_estimate").checked;
 			const fileSelector = document.getElementById('file');
 			// do nothing if no file is selected
 			if (fileSelector.files.length == 0) {
 				return;
 			}
 
+
 			const file = fileSelector.files[0];
 
 			// Hiding connection tab while loading data
 			HideServerConnection();
+			resetData();
 
 			vscode.postMessage({
 				command: 'readFromFile',
 				path: file.path,
-				est: estimate
 			});
 		}
 
 		function addGraph(id) {
 			let newHeader = document.createElement('h2');
 			newHeader.innerHTML = id;
+
+			newHeader.onclick = () => {
+				const layout = {
+					autosize: true,
+					title: id,
+					xaxis: {
+						title: 'Calls'
+					},
+					yaxis: {
+						title: 'Energy (Joules)'
+					}
+				};
+
+				plots.id = (Plotly.newPlot(id, [{ y: runs[id], mode: 'scatter' }], layout));
+			}
 
 			const graphDiv = document.getElementById("graphs");
 
@@ -233,19 +270,6 @@
 			newDiv.id = id;
 			newDiv.className = "plotly-graph";
 			graphDiv.appendChild(newDiv);
-
-			const layout = {
-				autosize: true,
-				title: id,
-				xaxis: {
-					title: 'Call'
-				},
-				yaxis: {
-					title: 'PKG'
-				}
-			};
-
-			plots.id = (Plotly.newPlot(id, [{ y: [], mode: 'scatter' }], layout));
 		}
 
 		function UpdateStats(id, first, acc, per_call, calls) { //TODO just get table once and update values
@@ -256,27 +280,27 @@
 			let cell3 = document.getElementById(id + "Cell3");
 			cell3.innerHTML = per_call;
 			let cell4 = document.getElementById(id + "Cell4");
-			cell4.innerHTML = calls
+			cell4.innerHTML = calls;
 		}
 
-		function UpdateLeaderBoardData(id, first, acc, per_call, calls) {
-			table.row.add({
+		function AddRowToLeaderBoard(id, first, acc, per_call, calls) {
+			const row = table.row((idx, data, node) => data.Identifier === id).data();
+			const rowData = {
 				"Identifier": id,
-				"First iteration": first,
+				//"First iteration": first,
 				"Accumulated": acc,
 				"Avg Per Call": per_call,
 				"Call count": calls
-			});
+			}
+
+			if (row) {
+				table.row((idx, data, node) => data.Identifier === id).data(rowData);
+			} else {
+				table.row.add(rowData);
+			}
 		}
 
 		function UpdateLeaderboard(dict) {
-
-			for (const [key, value] of Object.entries(dict)) {
-				console.log(key, value);
-				UpdateLeaderBoardData(value[3], value[0].toFixed(2), value[1].toFixed(2), (value[1] / value[2]).toFixed(2), value[2]);
-			}
-			table.order([2, 'desc']);
-			table.draw();
 		}
 
 		// Handle the message inside the webview
@@ -285,6 +309,15 @@
 			const message = event.data; // The JSON data our extension sent
 
 			switch (message.command) {
+				case 'data':
+					try {
+						handleDataWrapper(message.data, estimate);
+					} catch (error) {
+						console.error(error);
+						console.log(message.data);
+					}
+					break;
+
 				case 'updateGraph':
 					Plotly.extendTraces(message.id, {
 						y: [[message.value]]
@@ -299,11 +332,140 @@
 					UpdateStats(message.id, message.first, message.acc, message.per_call, message.calls);
 					break;
 
-				case 'SocketClosed':
-					UpdateLeaderboard(message.dict);
+				case 'socketClosed':
+					if (estimate) {
+						if (tempList.length != 0) {//check if there are any leftover elements
+							handleData(tempList); //since no change has occurd after these elements, it is not possible to estimate their value.
+						}
+					}
 					ShowServerConnection();
 			}
 		});
+
+		const idThreadDict = {};
+		const dict = {}; //data about the different measurements
+		//dict[0]: Energy used in first iteration
+		//dict[1]: total energy used
+		//dict[2]: count (amount of emasurements taken)
+		//dict[3]: identifier
+
+
+		function handleData(jsonData) {
+			for (const val of jsonData) {
+				const identifier = val.process_under_test_packet.id;
+				const threadId = val.process_under_test_packet.thread_id;
+
+				// checking if the measurement is from an Intel or AMD processor
+				const value = val.rapl_measurement.Intel ? val.rapl_measurement.Intel.pkg : val.rapl_measurement.AMD.pkg;
+
+				const operation = val.process_under_test_packet.operation;
+
+				const key = identifier + threadId;
+				if (operation == "Start") {
+					idThreadDict[key] = value;
+					if (!runs[identifier]) {
+						runs[identifier] = [];
+					}
+				} else {
+					if (idThreadDict[key] == undefined) {
+						console.log("Start not found for key: " + key);
+						continue
+					}
+					const energyUsed = value - idThreadDict[key];
+
+					runs[identifier].push(energyUsed);
+
+					if (!(identifier in dict)) {
+						addGraph(identifier);
+						//				   [first, accumulated, amount of times seen, identifier(used for debugging)] //TODO remove debug identifier
+						dict[identifier] = [energyUsed, 0, 0, identifier];
+					}
+
+					dict[identifier][1] += energyUsed;
+					dict[identifier][2] += 1;
+					const avg = (dict[identifier][1] / dict[identifier][2]).toFixed(2) // rounded to two decimals
+					UpdateStats(identifier, dict[identifier][0].toFixed(2), dict[identifier][1].toFixed(2), avg, dict[identifier][2]);
+
+					AddRowToLeaderBoard(identifier, dict[identifier][0].toFixed(2), dict[identifier][1].toFixed(2), avg, dict[identifier][2]);
+				}
+			}
+			table.draw();
+		}
+
+		var lastMeasuredValue = -1; //Used to keep track of the last measured value. -1 is not possible
+		var lastMeasuredTimestamp = -1; //Used to keep track of the timestamp of the last measured value. -1 is not possible
+		var tempList = [];
+
+		function estimateValues(jsonData) {
+			const newestElement = jsonData[jsonData.length - 1]; //The newest element has the new (and higher) energy value.
+			const newestMeasuredTimestamp = newestElement.process_under_test_packet.timestamp; //timestamp of the newest element
+			const newestMeasuredValue = newestElement.rapl_measurement.Intel ? newestElement.rapl_measurement.Intel.pkg : newestElement.rapl_measurement.AMD.pkg; //The value from the newest element
+
+			jsonData.forEach(element => {
+				const currentTimestamp = element.process_under_test_packet.timestamp; //timestamp of the current element
+
+				const timePeriod = newestMeasuredTimestamp - lastMeasuredTimestamp; //The time used from the last element to the newest element.
+				const timePeriodUsed = currentTimestamp - lastMeasuredTimestamp; //The time the current element have used from the timePeriod
+
+				//handle devide by 0 error.
+				let percentTimeUsed = 0;
+				if (timePeriod != 0) {
+					percentTimeUsed = (timePeriodUsed / timePeriod);
+				}
+
+				lastMeasuredTimestamp = currentTimestamp; //with the current element being accounted for, the period of available time is now from the current elements timestamp.
+				const valueDiff = newestMeasuredValue - lastMeasuredValue; //The value difference between the old value and the new value.
+				const currentEstimatedValue = lastMeasuredValue + (valueDiff * percentTimeUsed); //The estimated energy used is a percentage of the value difference
+				element.rapl_measurement.Intel ? (element.rapl_measurement.Intel.pkg = currentEstimatedValue) : (element.rapl_measurement.AMD.pkg = currentEstimatedValue); //set new value
+				lastMeasuredValue = currentEstimatedValue; //Set the new previous value
+
+			});
+			return jsonData;
+		}
+
+		function handleDataWrapper(jsonData, shouldEstimate) {
+			if (shouldEstimate == false) {
+				handleData(jsonData)
+			} else {
+				const estimatedJsonData = [];
+				jsonData.forEach(element => {
+					tempList.push(element)
+					const value = element.rapl_measurement.Intel ? element.rapl_measurement.Intel.pkg : element.rapl_measurement.AMD.pkg;
+
+					if (lastMeasuredValue == -1) {
+						lastMeasuredValue = value;
+						lastMeasuredTimestamp = element.process_under_test_packet.timestamp;
+					}
+					else {
+						if (lastMeasuredValue < value) {//a change in value
+							const estimatedValues = estimateValues(tempList);
+							estimatedJsonData.push(...estimatedValues);
+							tempList = []; //Reset
+						}
+					}
+				});
+				handleData(estimatedJsonData);
+			}
+		}
+
+		function resetData() {
+			// clear graphs section
+			document.getElementById("graphs").innerHTML = "";
+
+			// remove plots form dict
+			for (const val in plots) delete plots[val];
+
+			table.clear();
+			// clear data
+			for (const val in runs) delete runs[val];
+			for (const val in dict) delete dict[val];
+			for (const val in idThreadDict) delete idThreadDict[val];
+
+			// clear estimation variables
+			lastMeasuredValue = -1;
+			lastMeasuredTimestamp = -1;
+			tempList = [];
+		}
 
 	</script>
 
