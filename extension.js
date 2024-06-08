@@ -111,7 +111,7 @@ function startSocket(host, port, repo) {
 
 	client.on("data", (data) => {
 		let string = Buffer.concat([dataBuffer, data]).toString();
-		let splits = string.split(endString);
+		let splits = string.split("]" + endString); // ending of list + endString
 
 		for (let i = 0; i < splits.length; i++) {
 			if (i == splits.length - 1) {
@@ -125,7 +125,7 @@ function startSocket(host, port, repo) {
 				}
 				break;
 			}
-			queue.push(splits[i]);
+			queue.push(splits[i] + "]");
 		}
 	});
 
