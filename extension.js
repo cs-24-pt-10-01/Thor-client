@@ -5,9 +5,10 @@ const fs = require("fs");
 /**
  * @param {vscode.ExtensionContext} context
  */
-function activate(context) {
 
-	let currentPanel = undefined;
+let currentPanel = undefined;
+
+function activate(context) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('thorClient.start', () => {
@@ -48,101 +49,51 @@ function activate(context) {
 				context.subscriptions
 			);
 		})
-
 	);
-
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand('thorClient.startSocket', (ip_arg, port_arg, repo_arg) => {
-			startSocket(ip_arg, port_arg, repo_arg);
-		})
-	);
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand('thorClient.UpdateGraph', (id_arg, value_arg) => {
-			if (!currentPanel) { //skal testes uden dette
-				return;
-			}
-			currentPanel.webview.postMessage({ command: 'updateGraph', id: id_arg, value: value_arg });
-		})
-	);
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand('thorClient.AddGraph', (id_arg) => {
-			if (!currentPanel) { //skal testes uden dette
-				return;
-			}
-			currentPanel.webview.postMessage({ command: 'addGraph', id: id_arg });
-		})
-	);
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand('thorClient.UpdateStats', (id_arg, first_arg, acc_arg, per_call_arg, calls_arg) => {
-			if (!currentPanel) { //skal testes uden dette
-				return;
-			}
-			currentPanel.webview.postMessage({ command: 'updateStats', id: id_arg, first: first_arg, acc: acc_arg, per_call: per_call_arg, calls: calls_arg });
-		})
-	);
-
-	context.subscriptions.push(
-		vscode.commands.registerCommand('thorClient.SocketClosed', (dict_arg) => {
-			if (!currentPanel) { //skal testes uden dette
-				return;
-			}
-			currentPanel.webview.postMessage({ command: 'SocketClosed', dict: dict_arg });
-		})
-	);
-
 }
 
-
-var idThreadDict = {};
-var dict = {}; //data about the different measurements
-//dict[0]: Energy used in first iteration
-//dict[1]: total energy used
-//dict[2]: count (amount of emasurements taken)
-//dict[3]: identifier
-
-function handleData(jsonData) {
-	for (const val of jsonData) {
-		const identifier = val.local_client_packet.id;
-		const threadId = val.local_client_packet.thread_id;
-
-		// checking if the measurement is from an Intel or AMD processor
-		const value = val.rapl_measurement.Intel ? val.rapl_measurement.Intel.pkg : val.rapl_measurement.AMD.pkg;
-
-		const operation = val.local_client_packet.operation;
-
-		const key = identifier + threadId;
-		if (operation == "Start") {
-			idThreadDict[key] = value;
-		} else {
-			if (idThreadDict[key] == undefined) {
-				console.log("Start not found for key: " + key);
-				continue
-			}
-			const energyUsed = value - idThreadDict[key];
-
-			if (!(identifier in dict)) {
-				vscode.commands.executeCommand('thorClient.AddGraph', identifier);
-				//				   [first, accumulated, amount of times seen, identifier(used for debugging)] //TODO remove debug identifier
-				dict[identifier] = [energyUsed, 0, 0, identifier];
-			}
-
-			vscode.commands.executeCommand('thorClient.UpdateGraph', identifier, energyUsed);
-
-			dict[identifier][1] += energyUsed;
-			dict[identifier][2] += 1;
-			const avg = (dict[identifier][1] / dict[identifier][2]).toFixed(2) // rounded to two decimals
-			vscode.commands.executeCommand('thorClient.UpdateStats', identifier, dict[identifier][0], dict[identifier][1], avg, dict[identifier][2]);
-		}
+function socketClosed() {
+	if (!currentPanel) {
+		return;
 	}
+	currentPanel.webview.postMessage({ command: 'socketClosed' });
 }
+
+
+const queue = [];
 
 function startSocket(host, port, repo) {
+	const writeStream = fs.createWriteStream(__dirname + '/data.json', { flags: 'w' });
+	writeStream.write('[');
+
+	let flag = false;
+
+	const sender = setInterval(async () => {
+		if (flag) {
+			// stop interval
+			clearInterval(sender);
+			for (const val of queue) {
+				const json = JSON.parse(val);
+				currentPanel.webview.postMessage({ command: 'data', data: json });
+				for (const item of json) {
+					writeStream.write(JSON.stringify(item) + ",");
+				}
+			}
+			writeStream.end(() => { endJsonFile(__dirname + '/data.json'); });
+			socketClosed();
+		}
+		else if (queue.length > 0) {
+			const next = queue.shift();
+			const json = JSON.parse(next);
+			await currentPanel.webview.postMessage({ command: 'data', data: json });
+
+			for (const item of json) {
+				writeStream.write(JSON.stringify(item) + ",");
+			}
+		}
+	}, 100); // delay for prioritizing accepting data
+
 	const endString = "end"; // string used to indicate end of data by the server
-	const end = new Buffer.from(endString);
 
 	// if no repo, indicating observer by sending "none"
 	if (repo == "") {
@@ -159,23 +110,22 @@ function startSocket(host, port, repo) {
 	});
 
 	client.on("data", (data) => {
-		// if the endString is found then parse data else concat to buffer
-		if (data.subarray(data.length - end.length).toString() == endString) {
-			dataBuffer = Buffer.concat([dataBuffer, data]);
+		let string = Buffer.concat([dataBuffer, data]).toString();
+		let splits = string.split("]" + endString); // ending of list + endString
 
-			// removing endString from data
-			const dataBufferString = dataBuffer.toString().slice(0, -end.length);
-
-			const jsonData = JSON.parse(dataBufferString);
-			handleData(jsonData);
-
-			writeJsonToFile(jsonData, __dirname + '/data.json');
-
-			// clearing buffer
-			dataBuffer = Buffer.alloc(0);
-		}
-		else {
-			dataBuffer = Buffer.concat([dataBuffer, data]);
+		for (let i = 0; i < splits.length; i++) {
+			if (i == splits.length - 1) {
+				if (splits[i] != "") {
+					// saving incomplete data, for next chunk
+					dataBuffer = Buffer.from(splits[i]);
+				}
+				else {
+					// clearing buffer
+					dataBuffer = Buffer.alloc(0);
+				}
+				break;
+			}
+			queue.push(splits[i] + "]");
 		}
 	});
 
@@ -185,26 +135,17 @@ function startSocket(host, port, repo) {
 	});
 
 	client.on("close", () => {
-		vscode.commands.executeCommand('thorClient.SocketClosed', dict);
-		endJsonFile(__dirname + '/data.json');
+		flag = true;
 		console.log("Connection closed");
 	});
 }
 
-// write data to file, endJsonFile should be called after all date is written
-function writeJsonToFile(data, path = 'data.json') {
-	if (!fs.existsSync(path)) {
-		fs.writeFileSync(path, '[', 'utf8');
-	}
-
-	for (const val of data) {
-		console.log(val);
-		fs.appendFileSync(path, JSON.stringify(val) + ",", 'utf8');
-	}
-}
-
 // ends the json file with a ']'
 function endJsonFile(path = 'data.json') {
+	if (!fs.existsSync(path)) {
+		console.log("no file written");
+		return;
+	}
 	// removing the last comma
 	fs.truncateSync(path, fs.statSync(path).size - 1);
 
@@ -216,12 +157,13 @@ function readFromFile(path) {
 	try {
 		const data = fs.readFileSync(path);
 		const jsonData = JSON.parse(data);
-		handleData(jsonData);
+		currentPanel.webview.postMessage({ command: 'data', data: jsonData });
 
 		// simulating stop
-		vscode.commands.executeCommand('thorClient.SocketClosed', dict);
+		socketClosed();
 	}
 	catch (err) {
+		socketClosed();
 		console.error("failed to read file", err);
 	}
 }

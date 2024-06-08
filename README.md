@@ -8,7 +8,8 @@ This client provides a graphical interface for both requesting the profiling of 
 
 - Can request profiling of a program
 - Can see the energy usage of each function
-- Can view the results in real time in the form of graphs
+- Can view the results in real time in the form of graphs and a leaderboard
+- Estimation feature which allows for some of the faster functions to get values
 
 
 ## Requirements
@@ -28,7 +29,7 @@ This client provides a graphical interface for both requesting the profiling of 
 
 ## Release Notes
 
-### 1.0.0
+### 1.1.0
 
 "It just works" - Todd Howard, 2015
 
